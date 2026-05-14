@@ -39,6 +39,18 @@ fn pass_through_alias_invokes_interactive_claude() {
 }
 
 #[test]
+fn version_reports_adapter_version_without_invoking_claude() {
+    Command::cargo_bin("claude-code-cli-acp")
+        .expect("binary")
+        .env("CLAUDE_CODE_CLI", "/path/that/should/not/run")
+        .arg("--version")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains(env!("CARGO_PKG_VERSION")))
+        .stdout(predicate::str::contains("claude-code-cli-acp"));
+}
+
+#[test]
 #[cfg(unix)]
 fn doctor_reports_local_probe_without_live_network() {
     let temp = tempfile::tempdir().expect("tempdir");

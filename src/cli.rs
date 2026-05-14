@@ -1,4 +1,4 @@
-use std::{ffi::OsString, io::IsTerminal, io::Read, time::Duration};
+use std::{ffi::OsString, io::IsTerminal, io::Read, io::Write, time::Duration};
 
 use clap::Parser;
 
@@ -59,6 +59,16 @@ pub async fn run(args: impl IntoIterator<Item = OsString>) -> anyhow::Result<()>
                 .iter()
                 .any(|arg| arg == "--live-docs" || arg == "--check-upstream");
             doctor::run(live_docs).await
+        }
+        Some("--version") | Some("-V") => {
+            let mut stdout = std::io::stdout().lock();
+            writeln!(
+                stdout,
+                "{} {}",
+                env!("CARGO_PKG_NAME"),
+                env!("CARGO_PKG_VERSION")
+            )?;
+            Ok(())
         }
         Some("print") => {
             let print_args = std::iter::once(OsString::from("print"))

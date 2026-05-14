@@ -40,6 +40,7 @@ permissions:
 env:
   CARGO_TERM_COLOR: always
   BINARY_NAME: claude-code-cli-acp
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
   get-version:
@@ -50,7 +51,7 @@ jobs:
       tag_name: ${{ steps.get_version.outputs.tag_name }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6.0.2
 
       - name: Get version from Cargo.toml
         id: get_version
@@ -69,7 +70,7 @@ jobs:
     name: Release quality gates
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6.0.2
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
@@ -77,9 +78,9 @@ jobs:
           components: rustfmt, clippy
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6.4.0
         with:
-          node-version: "lts/*"
+          node-version: "24"
 
       - name: Install package test tools
         run: sudo apt-get update && sudo apt-get install -y gettext-base zip unzip
@@ -123,7 +124,7 @@ jobs:
 
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6.0.2
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
@@ -180,7 +181,7 @@ jobs:
           fi
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7.0.1
         with:
           name: ${{ steps.create_archive.outputs.archive_name }}
           path: ${{ steps.create_archive.outputs.archive_path }}
@@ -191,19 +192,19 @@ jobs:
     needs: [get-version, build]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6.0.2
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6.4.0
         with:
-          node-version: "lts/*"
+          node-version: "24"
           registry-url: "https://registry.npmjs.org"
 
       - name: Install packaging tools
         run: sudo apt-get update && sudo apt-get install -y gettext-base unzip
 
       - name: Download all artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8.0.1
         with:
           path: artifacts
           merge-multiple: true
@@ -215,14 +216,14 @@ jobs:
         run: bash npm/publish/update-base-package.sh ${{ needs.get-version.outputs.version }}
 
       - name: Upload NPM packages
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7.0.1
         with:
           name: npm-packages
           path: npm-packages/
           retention-days: 1
 
       - name: Upload base package
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7.0.1
         with:
           name: npm-base-package
           path: npm/
@@ -233,10 +234,10 @@ jobs:
     needs: [get-version, build, npm-packages]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6.0.2
 
       - name: Download all artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8.0.1
         with:
           path: artifacts
 
@@ -249,7 +250,7 @@ jobs:
             | xargs -0 sha256sum > artifacts/SHA256SUMS
 
       - name: Create release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3.0.0
         with:
           tag_name: ${{ needs.get-version.outputs.tag_name }}
           target_commitish: ${{ github.sha }}
@@ -274,19 +275,19 @@ jobs:
       id-token: write
     steps:
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6.4.0
         with:
-          node-version: "lts/*"
+          node-version: "24"
           registry-url: "https://registry.npmjs.org"
 
       - name: Download platform packages
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8.0.1
         with:
           name: npm-packages
           path: npm-packages
 
       - name: Download base package
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8.0.1
         with:
           name: npm-base-package
           path: npm-base-package
@@ -317,7 +318,7 @@ jobs:
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6.0.2
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable

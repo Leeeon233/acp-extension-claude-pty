@@ -24,6 +24,8 @@ Release from a branch that contains only release-ready source, tests, package me
 
 ## GitHub Release
 
+All GitHub Actions workflows are manual-only. They run from `workflow_dispatch`, not push, merge, or pull request events.
+
 The manual release workflow builds:
 
 - `aarch64-apple-darwin`
@@ -45,6 +47,42 @@ Inputs:
 - `publish_crates`: default `false`; requires `CARGO_REGISTRY_TOKEN`.
 
 Set `draft_release=false` only when the public branch and release notes are ready.
+
+## GitHub npm and crates.io Publishing
+
+The release workflow can publish npm and crates.io from GitHub after the release assets are created. Publication jobs are skipped unless `draft_release=false`.
+
+One-time setup:
+
+```sh
+gh secret set NPM_TOKEN --repo moabualruz/claude-code-cli-acp
+gh secret set CARGO_REGISTRY_TOKEN --repo moabualruz/claude-code-cli-acp
+```
+
+Token requirements:
+
+- `NPM_TOKEN`: npm automation token with publish rights for `claude-code-cli-acp` and all platform packages.
+- `CARGO_REGISTRY_TOKEN`: crates.io API token with publish rights for `claude-code-cli-acp`.
+
+The npm job already has `id-token: write` and runs `npm publish --provenance --access public`, so npm provenance is attached when npm accepts the token and GitHub OIDC context.
+
+To publish a future release from GitHub:
+
+```sh
+git tag -a v0.1.2 -m "Release v0.1.2"
+git push origin main v0.1.2
+gh workflow run Release \
+  --repo moabualruz/claude-code-cli-acp \
+  --ref main \
+  -f tag_name=v0.1.2 \
+  -f draft_release=false \
+  -f prerelease=false \
+  -f sign_artifacts=false \
+  -f publish_npm=true \
+  -f publish_crates=true
+```
+
+Use `publish_npm=false` or `publish_crates=false` when only one registry should publish. Keep `draft_release=true` for artifact rehearsal runs; registry publication will remain skipped.
 
 ## Signing
 
@@ -152,7 +190,7 @@ Recommended first registry distribution:
 {
   "distribution": {
     "npx": {
-      "package": "claude-code-cli-acp@0.1.0",
+      "package": "claude-code-cli-acp@0.1.1",
       "args": []
     }
   }
