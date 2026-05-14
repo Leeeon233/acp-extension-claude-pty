@@ -34,6 +34,7 @@ on:
         type: boolean
 
 permissions:
+  actions: read
   contents: write
   id-token: write
 
@@ -204,10 +205,9 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y gettext-base unzip
 
       - name: Download all artifacts
-        uses: actions/download-artifact@v8.0.1
-        with:
-          path: artifacts
-          merge-multiple: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh run download "${GITHUB_RUN_ID}" --repo "${GITHUB_REPOSITORY}" --dir artifacts
 
       - name: Create platform-specific packages
         run: bash npm/publish/create-platform-packages.sh ./artifacts ./npm-packages ${{ needs.get-version.outputs.version }}
@@ -237,9 +237,9 @@ jobs:
       - uses: actions/checkout@v6.0.2
 
       - name: Download all artifacts
-        uses: actions/download-artifact@v8.0.1
-        with:
-          path: artifacts
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh run download "${GITHUB_RUN_ID}" --repo "${GITHUB_REPOSITORY}" --dir artifacts
 
       - name: Generate checksums
         shell: bash
@@ -271,6 +271,7 @@ jobs:
     needs: [create-release, npm-packages]
     runs-on: ubuntu-latest
     permissions:
+      actions: read
       contents: read
       id-token: write
     steps:
@@ -281,16 +282,14 @@ jobs:
           registry-url: "https://registry.npmjs.org"
 
       - name: Download platform packages
-        uses: actions/download-artifact@v8.0.1
-        with:
-          name: npm-packages
-          path: npm-packages
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh run download "${GITHUB_RUN_ID}" --repo "${GITHUB_REPOSITORY}" --name npm-packages --dir npm-packages
 
       - name: Download base package
-        uses: actions/download-artifact@v8.0.1
-        with:
-          name: npm-base-package
-          path: npm-base-package
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh run download "${GITHUB_RUN_ID}" --repo "${GITHUB_REPOSITORY}" --name npm-base-package --dir npm-base-package
 
       - name: Publish platform packages first
         shell: bash
