@@ -1,0 +1,16 @@
+/target/
+target
+node_modules
+npm-packages
+/.env
+/.env.*
+!.env.example
+/.DS_Store
+.DS_Store
+/tmp/
+/dist/
+/coverage/
+*.log
+codex
+.agents
+.claude

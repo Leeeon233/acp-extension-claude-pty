@@ -1,0 +1,16 @@
+{
+  "id": "claude-code-cli-acp",
+  "name": "Claude Code CLI ACP",
+  "version": "0.1.0",
+  "description": "ACP adapter for the real interactive Claude Code CLI.",
+  "repository": "https://github.com/moabualruz/claude-code-cli-acp",
+  "website": "https://github.com/moabualruz/claude-code-cli-acp#readme",
+  "authors": ["mkh"],
+  "license": "Apache-2.0",
+  "distribution": {
+    "npx": {
+      "package": "claude-code-cli-acp@0.1.0",
+      "args": []
+    }
+  }
+}

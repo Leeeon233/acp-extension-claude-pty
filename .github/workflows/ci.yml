@@ -1,0 +1,76 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master, public-release]
+  pull_request:
+    branches: [main, master, public-release]
+  workflow_dispatch:
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  rust:
+    name: Rust fmt, lint, test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - name: Cache cargo registry
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/registry
+          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-registry-
+
+      - name: Cache cargo index
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/git
+          key: ${{ runner.os }}-cargo-git-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-git-
+
+      - name: Check formatting
+        run: cargo fmt --check
+
+      - name: Run clippy
+        run: cargo clippy --workspace --all-targets --all-features -- -D warnings
+
+      - name: Run tests
+        run: cargo test --workspace --all-targets --all-features
+
+      - name: Check Cargo package
+        run: |
+          cargo package --list
+          cargo publish --dry-run --locked
+
+  npm-validation:
+    name: NPM package validation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "lts/*"
+
+      - name: Install package test tools
+        run: sudo apt-get update && sudo apt-get install -y gettext-base zip unzip
+
+      - name: Run validation script
+        run: bash npm/testing/validate.sh
+
+      - name: Run platform detection tests
+        run: node npm/testing/test-platform-detection.js
+
+      - name: Run publish package dry-runs
+        run: bash npm/testing/test-publish-packages.sh

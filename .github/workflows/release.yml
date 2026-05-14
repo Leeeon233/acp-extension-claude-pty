@@ -1,0 +1,328 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag_name:
+        description: "Tag name for release. Defaults to v<version> from Cargo.toml."
+        required: false
+        type: string
+      draft_release:
+        description: "Create GitHub release as draft."
+        required: true
+        default: true
+        type: boolean
+      prerelease:
+        description: "Mark GitHub release as prerelease."
+        required: true
+        default: false
+        type: boolean
+      sign_artifacts:
+        description: "Sign/notarize macOS and Windows binaries. Requires signing secrets/vars."
+        required: true
+        default: false
+        type: boolean
+      publish_npm:
+        description: "Publish npm base and platform packages after release creation. Requires NPM_TOKEN."
+        required: true
+        default: false
+        type: boolean
+      publish_crates:
+        description: "Publish crate after release creation. Requires CARGO_REGISTRY_TOKEN."
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: write
+  id-token: write
+
+env:
+  CARGO_TERM_COLOR: always
+  BINARY_NAME: claude-code-cli-acp
+
+jobs:
+  get-version:
+    name: Get version
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.get_version.outputs.version }}
+      tag_name: ${{ steps.get_version.outputs.tag_name }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Get version from Cargo.toml
+        id: get_version
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="$(grep -m1 "^version" Cargo.toml | sed 's/.*"\(.*\)".*/\1/')"
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+          if [[ -n "${{ github.event.inputs.tag_name }}" ]]; then
+            echo "tag_name=${{ github.event.inputs.tag_name }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag_name=v${version}" >> "$GITHUB_OUTPUT"
+          fi
+
+  quality:
+    name: Release quality gates
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "lts/*"
+
+      - name: Install package test tools
+        run: sudo apt-get update && sudo apt-get install -y gettext-base zip unzip
+
+      - name: Run release gates
+        run: |
+          cargo fmt --check
+          cargo clippy --workspace --all-targets --all-features -- -D warnings
+          cargo test --workspace --all-targets --all-features
+          cargo package --list
+          cargo publish --dry-run --locked
+          bash npm/testing/validate.sh
+          node npm/testing/test-platform-detection.js
+          bash npm/testing/test-publish-packages.sh
+
+  build:
+    name: Build - ${{ matrix.target }}
+    needs: [get-version, quality]
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-14
+            target: aarch64-apple-darwin
+            binary_extension: ""
+          - os: macos-14
+            target: x86_64-apple-darwin
+            binary_extension: ""
+          - os: ubuntu-22.04
+            target: x86_64-unknown-linux-gnu
+            binary_extension: ""
+          - os: ubuntu-22.04-arm
+            target: aarch64-unknown-linux-gnu
+            binary_extension: ""
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            binary_extension: ".exe"
+          - os: windows-11-arm
+            target: aarch64-pc-windows-msvc
+            binary_extension: ".exe"
+
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Build release binary
+        run: cargo build --release --target ${{ matrix.target }}
+
+      - name: Code sign macOS binary
+        if: inputs.sign_artifacts && startsWith(matrix.os, 'macos')
+        env:
+          MACOS_CERTIFICATE: ${{ secrets.MACOS_CERTIFICATE }}
+          MACOS_CERTIFICATE_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
+          APPLE_NOTARIZATION_KEY: ${{ secrets.APPLE_NOTARIZATION_KEY }}
+          APPLE_NOTARIZATION_KEY_ID: ${{ secrets.APPLE_NOTARIZATION_KEY_ID }}
+          APPLE_NOTARIZATION_ISSUER_ID: ${{ secrets.APPLE_NOTARIZATION_ISSUER_ID }}
+          MACOS_CODESIGN_IDENTITY: ${{ vars.MACOS_CODESIGN_IDENTITY }}
+        run: ./script/sign-mac target/${{ matrix.target }}/release/${{ env.BINARY_NAME }}
+
+      - name: Code sign Windows binary
+        if: inputs.sign_artifacts && startsWith(matrix.os, 'windows')
+        env:
+          AZURE_TENANT_ID: ${{ secrets.AZURE_SIGNING_TENANT_ID }}
+          AZURE_CLIENT_ID: ${{ secrets.AZURE_SIGNING_CLIENT_ID }}
+          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_SIGNING_CLIENT_SECRET }}
+          ACCOUNT_NAME: ${{ vars.AZURE_SIGNING_ACCOUNT_NAME }}
+          CERT_PROFILE_NAME: ${{ vars.AZURE_SIGNING_CERT_PROFILE_NAME }}
+          ENDPOINT: ${{ vars.AZURE_SIGNING_ENDPOINT }}
+          FILE_DIGEST: SHA256
+          TIMESTAMP_DIGEST: SHA256
+          TIMESTAMP_SERVER: http://timestamp.acs.microsoft.com
+        run: .\script\sign-windows.ps1 target\${{ matrix.target }}\release\${{ env.BINARY_NAME }}.exe
+
+      - name: Create archive
+        id: create_archive
+        shell: bash
+        run: |
+          set -euo pipefail
+          binary_name="${BINARY_NAME}${{ matrix.binary_extension }}"
+          archive_name="${BINARY_NAME}-${{ needs.get-version.outputs.version }}-${{ matrix.target }}"
+
+          cd target/${{ matrix.target }}/release
+          if [[ "${{ matrix.os }}" == windows-* ]]; then
+            7z a -tzip "${archive_name}.zip" "${binary_name}"
+            echo "archive_path=${archive_name}.zip" >> "$GITHUB_OUTPUT"
+            echo "archive_name=${archive_name}.zip" >> "$GITHUB_OUTPUT"
+            mv "${archive_name}.zip" ../../../
+          else
+            tar czf "${archive_name}.tar.gz" "${binary_name}"
+            echo "archive_path=${archive_name}.tar.gz" >> "$GITHUB_OUTPUT"
+            echo "archive_name=${archive_name}.tar.gz" >> "$GITHUB_OUTPUT"
+            mv "${archive_name}.tar.gz" ../../../
+          fi
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.create_archive.outputs.archive_name }}
+          path: ${{ steps.create_archive.outputs.archive_path }}
+          retention-days: 1
+
+  npm-packages:
+    name: Create NPM packages
+    needs: [get-version, build]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "lts/*"
+          registry-url: "https://registry.npmjs.org"
+
+      - name: Install packaging tools
+        run: sudo apt-get update && sudo apt-get install -y gettext-base unzip
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+
+      - name: Create platform-specific packages
+        run: bash npm/publish/create-platform-packages.sh ./artifacts ./npm-packages ${{ needs.get-version.outputs.version }}
+
+      - name: Update base package version
+        run: bash npm/publish/update-base-package.sh ${{ needs.get-version.outputs.version }}
+
+      - name: Upload NPM packages
+        uses: actions/upload-artifact@v4
+        with:
+          name: npm-packages
+          path: npm-packages/
+          retention-days: 1
+
+      - name: Upload base package
+        uses: actions/upload-artifact@v4
+        with:
+          name: npm-base-package
+          path: npm/
+          retention-days: 1
+
+  create-release:
+    name: Create GitHub release
+    needs: [get-version, build, npm-packages]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Generate checksums
+        shell: bash
+        run: |
+          set -euo pipefail
+          find artifacts -type f \( -name '*.tar.gz' -o -name '*.zip' \) -print0 \
+            | sort -z \
+            | xargs -0 sha256sum > artifacts/SHA256SUMS
+
+      - name: Create release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ needs.get-version.outputs.tag_name }}
+          target_commitish: ${{ github.sha }}
+          name: Release ${{ needs.get-version.outputs.version }}
+          draft: ${{ inputs.draft_release }}
+          prerelease: ${{ inputs.prerelease }}
+          generate_release_notes: true
+          files: |
+            artifacts/SHA256SUMS
+            artifacts/**/*.tar.gz
+            artifacts/**/*.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  publish-npm:
+    name: Publish NPM packages
+    if: inputs.publish_npm && !inputs.draft_release
+    needs: [create-release, npm-packages]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "lts/*"
+          registry-url: "https://registry.npmjs.org"
+
+      - name: Download platform packages
+        uses: actions/download-artifact@v4
+        with:
+          name: npm-packages
+          path: npm-packages
+
+      - name: Download base package
+        uses: actions/download-artifact@v4
+        with:
+          name: npm-base-package
+          path: npm-base-package
+
+      - name: Publish platform packages first
+        shell: bash
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          set -euo pipefail
+          find npm-packages -mindepth 1 -maxdepth 1 -type d -print0 \
+            | sort -z \
+            | while IFS= read -r -d '' package_dir; do
+                echo "Publishing ${package_dir}"
+                (cd "${package_dir}" && npm publish --provenance --access public)
+              done
+
+      - name: Publish base package
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm publish --provenance --access public ./npm-base-package
+
+  publish-crate:
+    name: Publish crate
+    if: inputs.publish_crates && !inputs.draft_release
+    needs: create-release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Publish crate
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+        run: cargo publish --locked

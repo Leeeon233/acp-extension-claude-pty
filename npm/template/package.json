@@ -1,0 +1,31 @@
+{
+  "name": "${PACKAGE_NAME}",
+  "version": "${VERSION}",
+  "description": "Claude Code CLI ACP adapter - ${OS} ${ARCH} binary",
+  "license": "Apache-2.0",
+  "author": "mkh",
+  "homepage": "https://github.com/moabualruz/claude-code-cli-acp",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/moabualruz/claude-code-cli-acp.git"
+  },
+  "bin": {
+    "claude-code-cli-acp": "bin/claude-code-cli-acp"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
+  "os": [
+    "${OS}"
+  ],
+  "cpu": [
+    "${ARCH}"
+  ],
+  "files": [
+    "bin"
+  ]
+}

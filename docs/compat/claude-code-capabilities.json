@@ -1,0 +1,58 @@
+{
+  "observed_at": "2026-05-14T00:00:00+03:00",
+  "sources": [
+    "https://code.claude.com/docs/en/cli-reference",
+    "https://code.claude.com/docs/en/interactive-mode",
+    "https://code.claude.com/docs/en/claude-directory",
+    "https://registry.npmjs.org/@anthropic-ai%2fclaude-code"
+  ],
+  "local": {
+    "version": "2.1.141 (Claude Code)"
+  },
+  "npm": {
+    "package": "@anthropic-ai/claude-code",
+    "latest": "2.1.141",
+    "next": "2.1.141",
+    "stable": "2.1.128",
+    "modified": "2026-05-13T23:18:42.537Z"
+  },
+  "required_flags": [
+    "--session-id",
+    "--resume",
+    "--continue",
+    "--model",
+    "--permission-mode",
+    "--settings",
+    "--add-dir",
+    "--debug-file",
+    "--version",
+    "--help",
+    "--output-format",
+    "--input-format",
+    "--mcp-config",
+    "--strict-mcp-config"
+  ],
+  "removed_flags": [
+    {
+      "name": "--enable-auto-mode",
+      "replacement": "--permission-mode auto",
+      "removed_as_of": "2.1.111"
+    }
+  ],
+  "required_interactive_commands": [
+    "/exit",
+    "/clear",
+    "/resume"
+  ],
+  "transcripts": {
+    "root": "~/.claude/projects",
+    "filename": "<session>.jsonl",
+    "plaintext": true,
+    "recursive_session_lookup_required": true
+  },
+  "adapter_constraints": {
+    "core_uses_print_flag": false,
+    "core_uses_claude_agent_sdk": false,
+    "transcript_body_logging_default": "redacted"
+  }
+}
