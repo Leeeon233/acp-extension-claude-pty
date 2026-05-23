@@ -14,3 +14,5 @@ npm-packages
 codex
 .agents
 .claude
+
+.codegraph/
