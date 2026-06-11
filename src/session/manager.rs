@@ -24,6 +24,8 @@ use crate::{
     },
 };
 
+const CLAUDE_ASSISTANT_LINE_MARKER: char = '⏺';
+
 #[derive(Clone)]
 pub struct SessionManager {
     claude: ClaudeCli,
@@ -252,7 +254,24 @@ impl ManagedSession {
             if let Some(tailer) = tailer.as_mut() {
                 events.extend(tailer.poll()?);
             }
-            if events.iter().any(is_assistant_terminal_event) && pty.is_idle() {
+            let screen_text = pty.screen_snapshot();
+            let screen_is_idle = screen_text
+                .as_deref()
+                .ok()
+                .is_some_and(recognizers::recognize_idle);
+            let has_assistant_event = events.iter().any(is_assistant_terminal_event);
+            if has_assistant_event && (screen_is_idle || screen_text.is_err()) {
+                break;
+            }
+            if !has_assistant_event
+                && screen_is_idle
+                && screen_text
+                    .as_deref()
+                    .ok()
+                    .and_then(assistant_text_from_screen)
+                    .is_some()
+            {
+                events.clear();
                 break;
             }
             if let Some(dialog) = pty.permission_dialog()? {
@@ -301,7 +320,10 @@ impl ManagedSession {
             tokio::time::sleep(Duration::from_millis(150)).await;
         }
 
-        let screen_text = pty.screen_snapshot().ok();
+        let screen_text = pty
+            .screen_snapshot()
+            .ok()
+            .map(|text| assistant_text_from_screen(&text).unwrap_or(text));
         *self.pty.lock().unwrap() = Some(pty);
         Ok(TurnOutput {
             events,
@@ -392,6 +414,76 @@ fn is_assistant_terminal_event(event: &TranscriptEvent) -> bool {
                     .is_some_and(|text| !text.trim().is_empty())
         }
         _ => false,
+    }
+}
+
+fn assistant_text_from_screen(text: &str) -> Option<String> {
+    text.lines().rev().find_map(assistant_text_from_line)
+}
+
+fn assistant_text_from_line(line: &str) -> Option<String> {
+    let after_marker = line
+        .trim_start()
+        .strip_prefix(CLAUDE_ASSISTANT_LINE_MARKER)?
+        .strip_prefix(' ')?;
+    let text = strip_duration_suffix(after_marker.trim()).trim();
+    if text.is_empty() {
+        None
+    } else {
+        Some(text.to_string())
+    }
+}
+
+fn strip_duration_suffix(text: &str) -> &str {
+    text.strip_suffix(')')
+        .and_then(|without_close| without_close.rsplit_once(" ("))
+        .filter(|(_, suffix)| {
+            suffix.ends_with('s')
+                && suffix[..suffix.len() - 1]
+                    .chars()
+                    .all(|c| c.is_ascii_digit() || c == '.')
+        })
+        .map(|(prefix, _)| prefix)
+        .unwrap_or(text)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::assistant_text_from_screen;
+
+    #[test]
+    fn assistant_text_from_screen_requires_assistant_line_shape() {
+        let screen = "user typed a marker: ⏺ not assistant\n  ⏺ OK. (1.0s)\n";
+        assert_eq!(assistant_text_from_screen(screen).as_deref(), Some("OK."));
+    }
+
+    #[test]
+    fn assistant_text_from_screen_uses_latest_assistant_line() {
+        let screen = "  ⏺ stale text\n  ⏺ current text\n";
+        assert_eq!(
+            assistant_text_from_screen(screen).as_deref(),
+            Some("current text")
+        );
+    }
+
+    #[test]
+    fn assistant_text_from_screen_preserves_non_duration_parenthetical() {
+        let screen = "  ⏺ use foo (bar) now\n";
+        assert_eq!(
+            assistant_text_from_screen(screen).as_deref(),
+            Some("use foo (bar) now")
+        );
+    }
+
+    #[test]
+    fn assistant_text_from_screen_rejects_marker_inside_non_assistant_line() {
+        let screen = "tool output mentions ⏺ but is not an assistant line\n";
+        assert_eq!(assistant_text_from_screen(screen), None);
+    }
+
+    #[test]
+    fn assistant_text_from_screen_rejects_empty_assistant_line() {
+        assert_eq!(assistant_text_from_screen("⏺   \n"), None);
     }
 }
 
