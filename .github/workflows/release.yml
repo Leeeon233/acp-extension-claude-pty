@@ -27,11 +27,6 @@ on:
         required: true
         default: false
         type: boolean
-      publish_crates:
-        description: "Publish crate after release creation. Requires CARGO_REGISTRY_TOKEN."
-        required: true
-        default: false
-        type: boolean
 
 permissions:
   actions: read
@@ -91,8 +86,6 @@ jobs:
           cargo fmt --check
           cargo clippy --workspace --all-targets --all-features -- -D warnings
           cargo test --workspace --all-targets --all-features
-          cargo package --list
-          cargo publish --dry-run --locked
           bash npm/testing/validate.sh
           node npm/testing/test-platform-detection.js
           bash npm/testing/test-publish-packages.sh
@@ -308,21 +301,3 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: npm publish --provenance --access public ./npm-base-package
-
-  publish-crate:
-    name: Publish crate
-    if: inputs.publish_crates && !inputs.draft_release
-    needs: create-release
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-    steps:
-      - uses: actions/checkout@v6.0.2
-
-      - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
-
-      - name: Publish crate
-        env:
-          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
-        run: cargo publish --locked

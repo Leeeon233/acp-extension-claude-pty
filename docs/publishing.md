@@ -8,7 +8,6 @@ Supported channels:
 
 - GitHub Releases with signed or unsigned platform archives and `SHA256SUMS`.
 - npm registry base package plus platform optional-dependency packages.
-- crates.io binary crate for `cargo install`.
 - Homebrew tap after the first GitHub release exists.
 - ACP Registry for Zed and other ACP clients after npm or GitHub release assets are public.
 - Zed Agent Server extension only if Zed-specific extension packaging is needed.
@@ -16,7 +15,7 @@ Supported channels:
 Not default channels:
 
 - GitHub Packages for npm. Use only for an internal mirror with scoped package naming and separate docs.
-- Linux musl npm packages. Use Cargo install on musl until musl CI and package detection are explicitly added.
+- Linux musl npm packages. Use direct release assets or a local source build on musl until musl CI and package detection are explicitly added.
 
 ## Release Branch Hygiene
 
@@ -35,7 +34,7 @@ The manual release workflow builds:
 - `aarch64-pc-windows-msvc`
 - `x86_64-pc-windows-msvc`
 
-By default the workflow creates a draft release and does not publish npm/crates packages.
+By default the workflow creates a draft release and does not publish npm packages.
 
 Inputs:
 
@@ -44,25 +43,22 @@ Inputs:
 - `prerelease`: default `false`.
 - `sign_artifacts`: default `false`; requires signing secrets/vars.
 - `publish_npm`: default `false`; requires `NPM_TOKEN`.
-- `publish_crates`: default `false`; requires `CARGO_REGISTRY_TOKEN`.
 
 Set `draft_release=false` only when the public branch and release notes are ready.
 
-## GitHub npm and crates.io Publishing
+## GitHub npm Publishing
 
-The release workflow can publish npm and crates.io from GitHub after the release assets are created. Publication jobs are skipped unless `draft_release=false`.
+The release workflow can publish npm from GitHub after the release assets are created. Publication jobs are skipped unless `draft_release=false`.
 
 One-time setup:
 
 ```sh
 gh secret set NPM_TOKEN --repo Leeeon233/acp-extension-claude-pty
-gh secret set CARGO_REGISTRY_TOKEN --repo Leeeon233/acp-extension-claude-pty
 ```
 
 Token requirements:
 
 - `NPM_TOKEN`: npm automation token with publish rights for `acp-extension-claude-pty` and all platform packages.
-- `CARGO_REGISTRY_TOKEN`: crates.io API token with publish rights for `acp-extension-claude-pty`.
 
 The npm job already has `id-token: write` and runs `npm publish --provenance --access public`, so npm provenance is attached when npm accepts the token and GitHub OIDC context.
 
@@ -78,11 +74,10 @@ gh workflow run Release \
   -f draft_release=false \
   -f prerelease=false \
   -f sign_artifacts=false \
-  -f publish_npm=true \
-  -f publish_crates=true
+  -f publish_npm=true
 ```
 
-Use `publish_npm=false` or `publish_crates=false` when only one registry should publish. Keep `draft_release=true` for artifact rehearsal runs; registry publication will remain skipped.
+Use `publish_npm=false` when only GitHub release assets should be created. Keep `draft_release=true` for artifact rehearsal runs; registry publication will remain skipped.
 
 ## Signing
 
@@ -127,27 +122,6 @@ bash npm/testing/test-publish-packages.sh
 npm pack --dry-run --json ./npm
 ```
 
-## crates.io
-
-crates.io publication uses:
-
-```sh
-cargo publish --locked
-```
-
-Required secret:
-
-- `CARGO_REGISTRY_TOKEN`
-
-Local dry run:
-
-```sh
-cargo package --list
-cargo publish --dry-run --locked
-```
-
-`Cargo.toml` uses a strict `include` list so only the runtime crate files needed by Cargo are packaged.
-
 ## Homebrew Tap
 
 After the GitHub release exists:
@@ -190,7 +164,7 @@ Recommended first registry distribution:
 {
   "distribution": {
     "npx": {
-      "package": "acp-extension-claude-pty@0.1.1",
+      "package": "acp-extension-claude-pty@0.1.2",
       "args": []
     }
   }

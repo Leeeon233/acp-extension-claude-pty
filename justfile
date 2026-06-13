@@ -10,8 +10,6 @@ test:
     cargo test --workspace --all-targets --all-features
 
 package-dry-run:
-    cargo package --list --allow-dirty
-    cargo publish --dry-run --locked --allow-dirty
     bash npm/testing/test-publish-packages.sh
 
 ci: fmt lint test package-dry-run

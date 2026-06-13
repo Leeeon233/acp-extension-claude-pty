@@ -29,13 +29,7 @@ The npm package is a Node 18+ wrapper that installs one optional platform binary
 
 Use `npx acp-extension-claude-pty doctor` only for quick checks. Configure editors with a stable installed binary, not a one-shot `npx` invocation.
 
-## Cargo
-
-After crates.io publication:
-
-```sh
-cargo install acp-extension-claude-pty --locked
-```
+## Source Builds
 
 From the public git repository:
 
@@ -49,7 +43,7 @@ From a local checkout:
 cargo install --path . --locked
 ```
 
-Cargo installs binaries into Cargo's install root, usually `~/.cargo/bin`. Ensure that directory is on `PATH`.
+Cargo installs source-built binaries into Cargo's install root, usually `~/.cargo/bin`. Ensure that directory is on `PATH`.
 
 ## GitHub Release Binary
 
