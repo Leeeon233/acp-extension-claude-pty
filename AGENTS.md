@@ -1,5 +1,7 @@
 # claude-code-cli-acp agent instructions
 
+This's a fork repo. use Leeeon233/claude-code-cli-acp as base if you open pull request.
+
 ## Required workflow
 
 - Read `AGENTS.md`, `justfile`, `.mise.toml`, `.envrc`, `pyproject.toml`, and `package.json` before suggesting commands. Project config wins.
