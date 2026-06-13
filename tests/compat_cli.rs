@@ -1,7 +1,7 @@
 use std::fs;
 use std::path::Path;
 
-use claude_code_cli_acp::compat::claude_probe::ClaudeCli;
+use acp_extension_claude_pty::compat::claude_probe::ClaudeCli;
 
 #[cfg(unix)]
 fn write_executable(path: &Path, body: &str) {

@@ -55,14 +55,14 @@ The release workflow can publish npm and crates.io from GitHub after the release
 One-time setup:
 
 ```sh
-gh secret set NPM_TOKEN --repo moabualruz/claude-code-cli-acp
-gh secret set CARGO_REGISTRY_TOKEN --repo moabualruz/claude-code-cli-acp
+gh secret set NPM_TOKEN --repo Leeeon233/acp-extension-claude-pty
+gh secret set CARGO_REGISTRY_TOKEN --repo Leeeon233/acp-extension-claude-pty
 ```
 
 Token requirements:
 
-- `NPM_TOKEN`: npm automation token with publish rights for `claude-code-cli-acp` and all platform packages.
-- `CARGO_REGISTRY_TOKEN`: crates.io API token with publish rights for `claude-code-cli-acp`.
+- `NPM_TOKEN`: npm automation token with publish rights for `acp-extension-claude-pty` and all platform packages.
+- `CARGO_REGISTRY_TOKEN`: crates.io API token with publish rights for `acp-extension-claude-pty`.
 
 The npm job already has `id-token: write` and runs `npm publish --provenance --access public`, so npm provenance is attached when npm accepts the token and GitHub OIDC context.
 
@@ -72,7 +72,7 @@ To publish a future release from GitHub:
 git tag -a v0.1.2 -m "Release v0.1.2"
 git push origin main v0.1.2
 gh workflow run Release \
-  --repo moabualruz/claude-code-cli-acp \
+  --repo Leeeon233/acp-extension-claude-pty \
   --ref main \
   -f tag_name=v0.1.2 \
   -f draft_release=false \
@@ -153,21 +153,21 @@ cargo publish --dry-run --locked
 After the GitHub release exists:
 
 1. Download or read release `SHA256SUMS`.
-2. Copy `packaging/homebrew/claude-code-cli-acp.rb.template` into the tap as `Formula/claude-code-cli-acp.rb`.
+2. Copy `packaging/homebrew/acp-extension-claude-pty.rb.template` into the tap as `Formula/acp-extension-claude-pty.rb`.
 3. Point formula URLs at the GitHub release assets.
 4. Add SHA256 values from `SHA256SUMS`.
 5. Test with:
 
 ```sh
-brew install --build-from-source ./Formula/claude-code-cli-acp.rb
-brew test claude-code-cli-acp
-brew audit --strict --online claude-code-cli-acp
+brew install --build-from-source ./Formula/acp-extension-claude-pty.rb
+brew test acp-extension-claude-pty
+brew audit --strict --online acp-extension-claude-pty
 ```
 
 The formula test should run:
 
 ```sh
-claude-code-cli-acp --version
+acp-extension-claude-pty --version
 ```
 
 Do not make Homebrew the first publication gate; it depends on public GitHub release URLs.
@@ -190,7 +190,7 @@ Recommended first registry distribution:
 {
   "distribution": {
     "npx": {
-      "package": "claude-code-cli-acp@0.1.1",
+      "package": "acp-extension-claude-pty@0.1.1",
       "args": []
     }
   }
@@ -200,16 +200,16 @@ Recommended first registry distribution:
 Use the template at `packaging/acp-registry/agent.json.template`, then in a fork of `agentclientprotocol/registry`:
 
 ```sh
-mkdir claude-code-cli-acp
-cp packaging/acp-registry/agent.json.template claude-code-cli-acp/agent.json
-cp packaging/acp-registry/icon.svg claude-code-cli-acp/icon.svg
+mkdir acp-extension-claude-pty
+cp packaging/acp-registry/agent.json.template acp-extension-claude-pty/agent.json
+cp packaging/acp-registry/icon.svg acp-extension-claude-pty/icon.svg
 ```
 
 Before opening the registry PR:
 
 ```sh
 uv run --with jsonschema .github/workflows/build_registry.py
-python3 .github/workflows/verify_agents.py --auth-check --agent claude-code-cli-acp
+python3 .github/workflows/verify_agents.py --auth-check --agent acp-extension-claude-pty
 ```
 
 Registry validation checks schema, id uniqueness, icon requirements, distribution availability, version matching, and ACP authentication support.
@@ -222,11 +222,11 @@ Extension requirements:
 
 - Public extension repository with `extension.toml`.
 - Accepted extension license.
-- `[agent_servers.claude-code-cli-acp]` entry with display name and icon.
+- `[agent_servers.acp-extension-claude-pty]` entry with display name and icon.
 - Platform targets with release archive URL, `cmd`, optional `args`, and recommended `sha256`.
 - Local dev-extension test in Zed before submitting.
 
-Use `packaging/zed-extension/extension.toml.template` as the starting manifest. Publish by opening a PR to `zed-industries/extensions`, adding the extension as a submodule under `extensions/claude-code-cli-acp`, adding its entry to `extensions.toml`, and running the repository sort command required by Zed docs.
+Use `packaging/zed-extension/extension.toml.template` as the starting manifest. Publish by opening a PR to `zed-industries/extensions`, adding the extension as a submodule under `extensions/acp-extension-claude-pty`, adding its entry to `extensions.toml`, and running the repository sort command required by Zed docs.
 
 ## Final Pre-Publish Checks
 

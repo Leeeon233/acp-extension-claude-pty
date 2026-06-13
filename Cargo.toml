@@ -1,13 +1,13 @@
 [package]
-name = "claude-code-cli-acp"
+name = "acp-extension-claude-pty"
 version = "0.1.1"
 edition = "2024"
 rust-version = "1.95"
 authors = ["mkh"]
 license = "Apache-2.0"
 description = "An ACP-compatible adapter for the real Claude Code CLI"
-repository = "https://github.com/moabualruz/claude-code-cli-acp"
-homepage = "https://github.com/moabualruz/claude-code-cli-acp"
+repository = "https://github.com/Leeeon233/acp-extension-claude-pty"
+homepage = "https://github.com/Leeeon233/acp-extension-claude-pty"
 readme = "README.md"
 keywords = ["claude", "claude-code", "acp", "cli", "agent"]
 categories = ["command-line-utilities", "development-tools"]
@@ -22,12 +22,12 @@ include = [
 ]
 
 [[bin]]
-name = "claude-code-cli-acp"
+name = "acp-extension-claude-pty"
 path = "src/main.rs"
 
 [lib]
 doctest = false
-name = "claude_code_cli_acp"
+name = "acp_extension_claude_pty"
 path = "src/lib.rs"
 
 [dependencies]

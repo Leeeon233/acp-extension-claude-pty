@@ -1,6 +1,6 @@
 # Compatibility
 
-`claude-code-cli-acp` tracks live Claude Code CLI behavior. Local assumptions must be checked against `claude --help`, official docs, and npm package metadata.
+`acp-extension-claude-pty` tracks live Claude Code CLI behavior. Local assumptions must be checked against `claude --help`, official docs, and npm package metadata.
 
 ## Required Claude Surfaces
 
@@ -30,13 +30,13 @@ Update this section whenever `doctor --live-docs` or `just drift-live` detects a
 Local doctor:
 
 ```sh
-claude-code-cli-acp doctor
+acp-extension-claude-pty doctor
 ```
 
 Live docs/npm check:
 
 ```sh
-claude-code-cli-acp doctor --live-docs
+acp-extension-claude-pty doctor --live-docs
 just drift-live
 ```
 

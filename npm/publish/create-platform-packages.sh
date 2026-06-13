@@ -20,19 +20,19 @@ echo
 
 mkdir -p "$OUTPUT_DIR"
 
-# Define platform mappings: target -> (npm-os, npm-arch, binary-extension)
+# Define platform mappings: target|npm-os|npm-arch|binary-extension
 # Note: We only package gnu variants for Linux
-declare -A platforms=(
-  ["aarch64-apple-darwin"]="darwin arm64 "
-  ["x86_64-apple-darwin"]="darwin x64 "
-  ["x86_64-unknown-linux-gnu"]="linux x64 "
-  ["aarch64-unknown-linux-gnu"]="linux arm64 "
-  ["x86_64-pc-windows-msvc"]="win32 x64 .exe"
-  ["aarch64-pc-windows-msvc"]="win32 arm64 .exe"
+platforms=(
+  "aarch64-apple-darwin|darwin|arm64|"
+  "x86_64-apple-darwin|darwin|x64|"
+  "x86_64-unknown-linux-gnu|linux|x64|"
+  "aarch64-unknown-linux-gnu|linux|arm64|"
+  "x86_64-pc-windows-msvc|win32|x64|.exe"
+  "aarch64-pc-windows-msvc|win32|arm64|.exe"
 )
 
-for target in "${!platforms[@]}"; do
-  read os arch ext <<< "${platforms[$target]}"
+for platform in "${platforms[@]}"; do
+  IFS="|" read -r target os arch ext <<< "$platform"
 
   # Determine archive extension
   if [[ "$os" == "win32" ]]; then
@@ -52,19 +52,19 @@ for target in "${!platforms[@]}"; do
   echo "📦 Processing $target from $(basename "$archive_path")"
 
   # Create package name
-  pkg_name="claude-code-cli-acp-${os}-${arch}"
+  pkg_name="acp-extension-claude-pty-${os}-${arch}"
   pkg_dir="$OUTPUT_DIR/${pkg_name}"
   mkdir -p "${pkg_dir}/bin"
 
   # Extract binary
   if [[ "$archive_ext" == "zip" ]]; then
-    unzip -q -j "$archive_path" "claude-code-cli-acp${ext}" -d "${pkg_dir}/bin/"
+    unzip -q -j "$archive_path" "acp-extension-claude-pty${ext}" -d "${pkg_dir}/bin/"
   else
-    tar xzf "$archive_path" -C "${pkg_dir}/bin/" "claude-code-cli-acp${ext}"
+    tar xzf "$archive_path" -C "${pkg_dir}/bin/" "acp-extension-claude-pty${ext}"
   fi
 
   # Make binary executable (important for Unix-like systems)
-  chmod +x "${pkg_dir}/bin/claude-code-cli-acp${ext}" 2>/dev/null || echo "Failed to make binary executable"
+  chmod +x "${pkg_dir}/bin/acp-extension-claude-pty${ext}" 2>/dev/null || echo "Failed to make binary executable"
 
   # Create package.json from template
   export PACKAGE_NAME="$pkg_name"
@@ -88,19 +88,19 @@ for target in "${!platforms[@]}"; do
   cat > "${pkg_dir}/README.md" <<EOF
 # ${pkg_name}
 
-Platform binary package for \`claude-code-cli-acp\`.
+Platform binary package for \`acp-extension-claude-pty\`.
 
 Install the base package instead:
 
 \`\`\`sh
-npm install -g claude-code-cli-acp
+npm install -g acp-extension-claude-pty
 \`\`\`
 EOF
 
   # Update bin field for Windows to include .exe extension
   if [[ "$os" == "win32" ]]; then
     # Use sed to update the bin path in package.json
-    sed -i.bak 's|"bin/claude-code-cli-acp"|"bin/claude-code-cli-acp.exe"|' "${pkg_dir}/package.json"
+    sed -i.bak 's|"bin/acp-extension-claude-pty"|"bin/acp-extension-claude-pty.exe"|' "${pkg_dir}/package.json"
     rm "${pkg_dir}/package.json.bak"
   fi
 

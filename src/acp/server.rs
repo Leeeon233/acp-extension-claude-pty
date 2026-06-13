@@ -87,7 +87,7 @@ impl AcpServer {
         let server = self;
         Agent
             .builder()
-            .name("claude-code-cli-acp")
+            .name("acp-extension-claude-pty")
             .on_receive_request(
                 {
                     let server = server.clone();
@@ -276,8 +276,8 @@ impl AcpServer {
         Ok(InitializeResponse::new(ProtocolVersion::V1)
             .agent_capabilities(agent_capabilities)
             .agent_info(
-                Implementation::new("claude-code-cli-acp", env!("CARGO_PKG_VERSION"))
-                    .title("Claude Code CLI ACP"),
+                Implementation::new("acp-extension-claude-pty", env!("CARGO_PKG_VERSION"))
+                    .title("ACP Extension Claude PTY"),
             )
             .auth_methods(auth_methods(&client_capabilities)))
     }

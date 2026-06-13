@@ -1,22 +1,22 @@
-# claude-code-cli-acp
+# acp-extension-claude-pty
 
-NPM wrapper for `claude-code-cli-acp`, an ACP adapter for the real Claude Code CLI.
+NPM wrapper for `acp-extension-claude-pty`, an ACP adapter for the real Claude Code CLI.
 
 ## Install
 
 ```sh
-npm install -g claude-code-cli-acp
-claude-code-cli-acp doctor
+npm install -g acp-extension-claude-pty
+acp-extension-claude-pty doctor
 ```
 
 The base package requires Node 18+ and installs one optional platform package for your OS and CPU:
 
-- `claude-code-cli-acp-darwin-arm64`
-- `claude-code-cli-acp-darwin-x64`
-- `claude-code-cli-acp-linux-arm64`
-- `claude-code-cli-acp-linux-x64`
-- `claude-code-cli-acp-win32-arm64`
-- `claude-code-cli-acp-win32-x64`
+- `acp-extension-claude-pty-darwin-arm64`
+- `acp-extension-claude-pty-darwin-x64`
+- `acp-extension-claude-pty-linux-arm64`
+- `acp-extension-claude-pty-linux-x64`
+- `acp-extension-claude-pty-win32-arm64`
+- `acp-extension-claude-pty-win32-x64`
 
 ## Prerequisites
 
@@ -27,14 +27,14 @@ npm install -g @anthropic-ai/claude-code
 claude
 ```
 
-`npx claude-code-cli-acp doctor` is useful for a quick smoke test, but editors should be configured with a stable installed binary.
+`npx acp-extension-claude-pty doctor` is useful for a quick smoke test, but editors should be configured with a stable installed binary.
 
 ## Usage
 
 ACP server:
 
 ```sh
-claude-code-cli-acp
+acp-extension-claude-pty
 ```
 
 Zed custom-agent settings can use the installed binary directly:
@@ -42,9 +42,9 @@ Zed custom-agent settings can use the installed binary directly:
 ```json
 {
   "agent_servers": {
-    "claude-code-cli-acp": {
+    "acp-extension-claude-pty": {
       "type": "custom",
-      "command": "claude-code-cli-acp",
+      "command": "acp-extension-claude-pty",
       "args": [],
       "env": {}
     }
@@ -55,19 +55,19 @@ Zed custom-agent settings can use the installed binary directly:
 Interactive pass-through:
 
 ```sh
-claude-code-cli-acp interactive -- --model sonnet
+acp-extension-claude-pty interactive -- --model sonnet
 ```
 
 Print replacement for `claude -p`:
 
 ```sh
-claude-code-cli-acp print "summarize this repository" --output-format text
+acp-extension-claude-pty print "summarize this repository" --output-format text
 ```
 
 Doctor:
 
 ```sh
-claude-code-cli-acp doctor --live-docs
+acp-extension-claude-pty doctor --live-docs
 ```
 
 ## Security

@@ -1,4 +1,4 @@
-use claude_code_cli_acp::compat::docs_probe::{LiveProbe, probe_live};
+use acp_extension_claude_pty::compat::docs_probe::{LiveProbe, probe_live};
 
 #[tokio::test]
 #[ignore = "live docs/npm drift check"]

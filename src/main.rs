@@ -2,5 +2,5 @@ use anyhow::Result;
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    claude_code_cli_acp::run_main(std::env::args_os()).await
+    acp_extension_claude_pty::run_main(std::env::args_os()).await
 }

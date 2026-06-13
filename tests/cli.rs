@@ -27,7 +27,7 @@ fn pass_through_alias_invokes_interactive_claude() {
         ),
     );
 
-    Command::cargo_bin("claude-code-cli-acp")
+    Command::cargo_bin("acp-extension-claude-pty")
         .expect("binary")
         .env("CLAUDE_CODE_CLI", &fake)
         .arg("--")
@@ -40,14 +40,14 @@ fn pass_through_alias_invokes_interactive_claude() {
 
 #[test]
 fn version_reports_adapter_version_without_invoking_claude() {
-    Command::cargo_bin("claude-code-cli-acp")
+    Command::cargo_bin("acp-extension-claude-pty")
         .expect("binary")
         .env("CLAUDE_CODE_CLI", "/path/that/should/not/run")
         .arg("--version")
         .assert()
         .success()
         .stdout(predicate::str::contains(env!("CARGO_PKG_VERSION")))
-        .stdout(predicate::str::contains("claude-code-cli-acp"));
+        .stdout(predicate::str::contains("acp-extension-claude-pty"));
 }
 
 #[test]
@@ -65,7 +65,7 @@ esac
 "#,
     );
 
-    Command::cargo_bin("claude-code-cli-acp")
+    Command::cargo_bin("acp-extension-claude-pty")
         .expect("binary")
         .env("CLAUDE_CODE_CLI", &fake)
         .arg("doctor")

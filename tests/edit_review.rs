@@ -1,7 +1,7 @@
-use agent_client_protocol::schema::{Diff, SessionUpdate, ToolCallContent, ToolKind};
-use claude_code_cli_acp::{
+use acp_extension_claude_pty::{
     acp::updates::TranscriptUpdateMapper, transcript::events::parse_transcript_line,
 };
+use agent_client_protocol::schema::{Diff, SessionUpdate, ToolCallContent, ToolKind};
 use serde_json::json;
 
 #[test]

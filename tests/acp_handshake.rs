@@ -4,6 +4,7 @@ use std::{
     sync::{Arc, Mutex},
 };
 
+use acp_extension_claude_pty::acp::server::AcpServer;
 use agent_client_protocol::{
     Channel, Client,
     schema::{
@@ -14,7 +15,6 @@ use agent_client_protocol::{
         SetSessionModeRequest, StopReason,
     },
 };
-use claude_code_cli_acp::acp::server::AcpServer;
 use serial_test::serial;
 
 #[cfg(unix)]
@@ -38,7 +38,7 @@ async fn initialize_advertises_claude_acp_capabilities() {
     assert_eq!(response.protocol_version, ProtocolVersion::V1);
     assert_eq!(
         response.agent_info.as_ref().expect("agent info").name,
-        "claude-code-cli-acp"
+        "acp-extension-claude-pty"
     );
     assert!(response.agent_capabilities.load_session);
     assert!(

@@ -1,6 +1,6 @@
 # Editor Setup
 
-`claude-code-cli-acp` is a local ACP agent. Configure editors to spawn the binary directly and communicate over stdio.
+`acp-extension-claude-pty` is a local ACP agent. Configure editors to spawn the binary directly and communicate over stdio.
 
 ## Zed
 
@@ -11,8 +11,8 @@ Zed supports external agents through ACP Registry entries, Agent Server extensio
 Install the adapter first:
 
 ```sh
-npm install -g claude-code-cli-acp
-claude-code-cli-acp doctor
+npm install -g acp-extension-claude-pty
+acp-extension-claude-pty doctor
 ```
 
 Then add a custom agent to Zed `settings.json`:
@@ -20,9 +20,9 @@ Then add a custom agent to Zed `settings.json`:
 ```json
 {
   "agent_servers": {
-    "claude-code-cli-acp": {
+    "acp-extension-claude-pty": {
       "type": "custom",
-      "command": "claude-code-cli-acp",
+      "command": "acp-extension-claude-pty",
       "args": [],
       "env": {}
     }
@@ -33,7 +33,7 @@ Then add a custom agent to Zed `settings.json`:
 If Zed cannot see the same `PATH` as your shell, use an absolute adapter path:
 
 ```sh
-which claude-code-cli-acp
+which acp-extension-claude-pty
 ```
 
 If Zed cannot find the Claude Code CLI, pass the real `claude` binary path without aliasing over it:
@@ -41,9 +41,9 @@ If Zed cannot find the Claude Code CLI, pass the real `claude` binary path witho
 ```json
 {
   "agent_servers": {
-    "claude-code-cli-acp": {
+    "acp-extension-claude-pty": {
       "type": "custom",
-      "command": "/absolute/path/to/claude-code-cli-acp",
+      "command": "/absolute/path/to/acp-extension-claude-pty",
       "args": [],
       "env": {
         "CLAUDE_CODE_CLI": "/absolute/path/to/claude"
@@ -55,12 +55,12 @@ If Zed cannot find the Claude Code CLI, pass the real `claude` binary path witho
 
 Manual Zed requirements:
 
-- `claude-code-cli-acp` exists on the path Zed uses, or `command` is absolute.
+- `acp-extension-claude-pty` exists on the path Zed uses, or `command` is absolute.
 - `claude` exists on the path Zed uses, or `CLAUDE_CODE_CLI` points to it.
 - Claude Code has been authenticated once in a terminal.
 - The editor process can read and write the working directory.
 
-Do not use `npx` in persistent editor config. Use `npx claude-code-cli-acp doctor` only for smoke checks.
+Do not use `npx` in persistent editor config. Use `npx acp-extension-claude-pty doctor` only for smoke checks.
 
 Do not wrap the command in a shell script that prints banners, prompts, or status text to stdout. ACP stdout must contain only protocol JSON-RPC frames.
 
@@ -75,7 +75,7 @@ To customize a registry-installed agent, use its registry id with `type: "regist
 ```json
 {
   "agent_servers": {
-    "claude-code-cli-acp": {
+    "acp-extension-claude-pty": {
       "type": "registry",
       "env": {
         "CLAUDE_CODE_CLI": "/absolute/path/to/claude"
@@ -100,7 +100,7 @@ Open `dev: open acp logs` from the Zed Command Palette to inspect ACP traffic. D
 Use the same command as the agent executable:
 
 ```sh
-claude-code-cli-acp
+acp-extension-claude-pty
 ```
 
 Pass project roots as ACP client session data when the client supports it. Paths sent through ACP must be absolute.
@@ -110,5 +110,5 @@ Pass project roots as ACP client session data when the client supports it. Paths
 For normal terminal use, keep `claude` pointing at the installed Claude Code CLI. If you want a shortcut for this adapter, use a non-conflicting alias:
 
 ```sh
-alias claude-acp='claude-code-cli-acp'
+alias claude-acp='acp-extension-claude-pty'
 ```

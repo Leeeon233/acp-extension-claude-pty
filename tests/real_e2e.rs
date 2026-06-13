@@ -3,6 +3,7 @@ use std::{
     sync::{Arc, Mutex},
 };
 
+use acp_extension_claude_pty::{acp::server::AcpServer, transcript::tailer::TranscriptLocator};
 use agent_client_protocol::{
     Channel, Client,
     schema::{
@@ -12,7 +13,6 @@ use agent_client_protocol::{
     },
 };
 use assert_cmd::Command;
-use claude_code_cli_acp::{acp::server::AcpServer, transcript::tailer::TranscriptLocator};
 use predicates::prelude::*;
 use serial_test::serial;
 
@@ -35,13 +35,13 @@ fn real_claude_doctor_interactive_print_and_transcript() {
         "git init failed for real e2e temp repo"
     );
 
-    Command::cargo_bin("claude-code-cli-acp")
+    Command::cargo_bin("acp-extension-claude-pty")
         .expect("binary")
         .arg("doctor")
         .assert()
         .success();
 
-    Command::cargo_bin("claude-code-cli-acp")
+    Command::cargo_bin("acp-extension-claude-pty")
         .expect("binary")
         .arg("--")
         .arg("--version")
@@ -49,7 +49,7 @@ fn real_claude_doctor_interactive_print_and_transcript() {
         .success();
 
     let text_session = deterministic_session_id(temp.path(), "print-text");
-    Command::cargo_bin("claude-code-cli-acp")
+    Command::cargo_bin("acp-extension-claude-pty")
         .expect("binary")
         .current_dir(temp.path())
         .args([
@@ -65,7 +65,7 @@ fn real_claude_doctor_interactive_print_and_transcript() {
         .stdout(predicate::str::contains("ACP_REAL_E2E_OK"));
 
     let json_session = deterministic_session_id(temp.path(), "print-json");
-    Command::cargo_bin("claude-code-cli-acp")
+    Command::cargo_bin("acp-extension-claude-pty")
         .expect("binary")
         .current_dir(temp.path())
         .args([
@@ -84,7 +84,7 @@ fn real_claude_doctor_interactive_print_and_transcript() {
         .stdout(predicate::str::contains("ACP_REAL_E2E_JSON"));
 
     let stdin_session = deterministic_session_id(temp.path(), "print-stdin");
-    Command::cargo_bin("claude-code-cli-acp")
+    Command::cargo_bin("acp-extension-claude-pty")
         .expect("binary")
         .current_dir(temp.path())
         .args(["print", "--session-id", &stdin_session, "--timeout", "120"])

@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use acp_extension_claude_pty::acp::server::AcpServer;
 use agent_client_protocol::{
     Channel, Client,
     schema::{
@@ -8,7 +9,6 @@ use agent_client_protocol::{
         SetSessionConfigOptionRequest, SetSessionModeRequest,
     },
 };
-use claude_code_cli_acp::acp::server::AcpServer;
 
 #[tokio::test]
 async fn new_and_loaded_sessions_advertise_modes_models_and_config_options() {

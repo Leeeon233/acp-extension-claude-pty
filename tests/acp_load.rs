@@ -1,4 +1,4 @@
-use claude_code_cli_acp::transcript::events::{
+use acp_extension_claude_pty::transcript::events::{
     TranscriptEventKind, parse_transcript_line, strip_local_command_metadata,
 };
 use serde_json::json;

@@ -1,8 +1,8 @@
+use acp_extension_claude_pty::acp::updates::prompt_text;
 use agent_client_protocol::schema::{
     ContentBlock, EmbeddedResource, EmbeddedResourceResource, PromptRequest, ResourceLink,
     SessionId, TextResourceContents,
 };
-use claude_code_cli_acp::acp::updates::prompt_text;
 
 #[test]
 fn prompt_text_formats_resource_links_embedded_text_and_mcp_commands() {

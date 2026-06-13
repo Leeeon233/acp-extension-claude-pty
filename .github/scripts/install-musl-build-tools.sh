@@ -49,7 +49,7 @@ fi
 
 zig_target="${TARGET/-unknown-linux-musl/-linux-musl}"
 runner_temp="${RUNNER_TEMP:-/tmp}"
-tool_root="${runner_temp}/claude-code-cli-acp-musl-tools-${TARGET}"
+tool_root="${runner_temp}/acp-extension-claude-pty-musl-tools-${TARGET}"
 mkdir -p "${tool_root}"
 
 libcap_root="${tool_root}/libcap-${libcap_version}"

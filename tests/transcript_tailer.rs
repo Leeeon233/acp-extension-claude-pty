@@ -1,8 +1,8 @@
 use std::fs::{self, OpenOptions};
 use std::io::Write;
 
-use claude_code_cli_acp::transcript::events::{TranscriptEventKind, parse_transcript_line};
-use claude_code_cli_acp::transcript::tailer::{TranscriptLocator, TranscriptTailer};
+use acp_extension_claude_pty::transcript::events::{TranscriptEventKind, parse_transcript_line};
+use acp_extension_claude_pty::transcript::tailer::{TranscriptLocator, TranscriptTailer};
 
 #[test]
 fn transcript_events_parse_text_arrays_without_plaintext_leaks() {

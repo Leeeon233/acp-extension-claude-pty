@@ -1,16 +1,16 @@
 {
   "name": "${PACKAGE_NAME}",
   "version": "${VERSION}",
-  "description": "Claude Code CLI ACP adapter - ${OS} ${ARCH} binary",
+  "description": "ACP Extension Claude PTY adapter - ${OS} ${ARCH} binary",
   "license": "Apache-2.0",
   "author": "mkh",
-  "homepage": "https://github.com/moabualruz/claude-code-cli-acp",
+  "homepage": "https://github.com/Leeeon233/acp-extension-claude-pty",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/moabualruz/claude-code-cli-acp.git"
+    "url": "git+https://github.com/Leeeon233/acp-extension-claude-pty.git"
   },
   "bin": {
-    "claude-code-cli-acp": "bin/claude-code-cli-acp"
+    "acp-extension-claude-pty": "bin/acp-extension-claude-pty"
   },
   "engines": {
     "node": ">=18.0.0"

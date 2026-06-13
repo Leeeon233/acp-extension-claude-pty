@@ -47,7 +47,7 @@ done
 "#,
     );
 
-    Command::cargo_bin("claude-code-cli-acp")
+    Command::cargo_bin("acp-extension-claude-pty")
         .expect("binary")
         .env("CLAUDE_CODE_CLI", &fake)
         .env("HOME", temp.path())
@@ -92,7 +92,7 @@ done
 "#,
     );
 
-    Command::cargo_bin("claude-code-cli-acp")
+    Command::cargo_bin("acp-extension-claude-pty")
         .expect("binary")
         .env("CLAUDE_CODE_CLI", &fake)
         .env("HOME", temp.path())
@@ -138,7 +138,7 @@ done
 "#,
     );
 
-    Command::cargo_bin("claude-code-cli-acp")
+    Command::cargo_bin("acp-extension-claude-pty")
         .expect("binary")
         .env("CLAUDE_CODE_CLI", &fake)
         .env("HOME", temp.path())
@@ -185,7 +185,7 @@ done
 "#,
     );
 
-    Command::cargo_bin("claude-code-cli-acp")
+    Command::cargo_bin("acp-extension-claude-pty")
         .expect("binary")
         .env("CLAUDE_CODE_CLI", &fake)
         .env("HOME", temp.path())
@@ -243,7 +243,7 @@ done
 "#,
     );
 
-    Command::cargo_bin("claude-code-cli-acp")
+    Command::cargo_bin("acp-extension-claude-pty")
         .expect("binary")
         .env("CLAUDE_CODE_CLI", &fake)
         .env("HOME", temp.path())

@@ -5,7 +5,7 @@ use clap::Parser;
 use crate::{acp::server::AcpServer, doctor, interactive, print_mode};
 
 #[derive(Debug, Parser)]
-#[command(name = "claude-code-cli-acp")]
+#[command(name = "acp-extension-claude-pty")]
 #[command(about = "ACP adapter and CLI wrapper for Claude Code")]
 struct PrintCommand {
     #[arg()]
@@ -37,7 +37,7 @@ pub async fn run(args: impl IntoIterator<Item = OsString>) -> anyhow::Result<()>
     let _program = args
         .first()
         .cloned()
-        .unwrap_or_else(|| "claude-code-cli-acp".into());
+        .unwrap_or_else(|| "acp-extension-claude-pty".into());
     if !args.is_empty() {
         args.remove(0);
     }

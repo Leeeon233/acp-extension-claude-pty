@@ -8,8 +8,9 @@ use acp_extension_claude_pty::acp::server::AcpServer;
 use agent_client_protocol::{
     Channel, Client,
     schema::{
-        ClientCapabilities, ContentBlock, Implementation, InitializeRequest, NewSessionRequest,
-        PromptRequest, ProtocolVersion, SessionNotification, StopReason,
+        ClientCapabilities, CloseSessionRequest, ContentBlock, Implementation, InitializeRequest,
+        NewSessionRequest, PromptRequest, ProtocolVersion, SessionNotification,
+        SetSessionConfigOptionRequest, SetSessionModeRequest, StopReason,
     },
 };
 use serial_test::serial;
@@ -27,27 +28,50 @@ fn write_executable(path: &Path, body: &str) {
 #[tokio::test]
 #[cfg(unix)]
 #[serial]
-async fn concurrent_prompts_on_one_session_are_serialized_through_one_pty() {
+async fn set_session_mode_restarts_pty_before_next_prompt() {
+    run_dynamic_mode_case(ModeChange::SetMode("plan"), "plan").await;
+}
+
+#[tokio::test]
+#[cfg(unix)]
+#[serial]
+async fn set_session_config_mode_restarts_pty_before_next_prompt() {
+    run_dynamic_mode_case(ModeChange::SetConfigOption("acceptEdits"), "acceptEdits").await;
+}
+
+#[cfg(unix)]
+#[derive(Clone, Copy)]
+enum ModeChange {
+    SetMode(&'static str),
+    SetConfigOption(&'static str),
+}
+
+#[cfg(unix)]
+async fn run_dynamic_mode_case(mode_change: ModeChange, expected_mode: &'static str) {
     let temp = tempfile::tempdir().expect("tempdir");
-    let fake = temp.path().join("claude-fake-queue");
+    let fake = temp.path().join("claude-fake-dynamic-mode");
     write_executable(
         &fake,
         r#"#!/bin/sh
 sid=""
+resume=""
+mode=""
 while [ "$#" -gt 0 ]; do
   case "$1" in
     --session-id) sid="$2"; shift 2 ;;
+    --resume) resume="$2"; shift 2 ;;
+    --permission-mode) mode="$2"; shift 2 ;;
     *) shift ;;
   esac
 done
+printf 'sid=%s resume=%s mode=%s\n' "$sid" "$resume" "$mode" >> "$HOME/invocations.log"
 mkdir -p "$HOME/.claude/projects/fake-project"
 transcript="$HOME/.claude/projects/fake-project/$sid.jsonl"
 printf 'Claude ready\r\n❯ '
 count=0
 while IFS= read -r line; do
   count=$((count + 1))
-  sleep 0.1
-  printf '{"type":"assistant","sessionId":"%s","message":{"role":"assistant","content":[{"type":"text","text":"response-%s"}],"model":"fake-model"}}\n' "$sid" "$count" >> "$transcript"
+  printf '{"type":"assistant","sessionId":"%s","message":{"role":"assistant","content":[{"type":"text","text":"mode:%s response:%s"}],"model":"fake-model"}}\n' "$sid" "$mode" "$count" >> "$transcript"
   printf '\r\n❯ '
 done
 "#,
@@ -55,10 +79,12 @@ done
 
     let _env = EnvGuard::set([("CLAUDE_CODE_CLI", fake.as_path()), ("HOME", temp.path())]);
     let notifications = Arc::new(Mutex::new(Vec::<SessionNotification>::new()));
+    let session_id = Arc::new(Mutex::new(None::<String>));
     let (client_transport, server_transport) = Channel::duplex();
     let server = Arc::new(AcpServer::new());
     let server_task = tokio::spawn(server.serve(server_transport));
     let notifications_for_client = Arc::clone(&notifications);
+    let session_id_for_client = Arc::clone(&session_id);
     let cwd = temp.path().to_path_buf();
 
     Client
@@ -74,39 +100,78 @@ done
             cx.send_request(
                 InitializeRequest::new(ProtocolVersion::V1)
                     .client_capabilities(ClientCapabilities::default())
-                    .client_info(Implementation::new("test-client", "0.0.0")),
+                    .client_info(Implementation::new("dynamic-mode-client", "0.0.0")),
             )
             .block_task()
             .await?;
+
             let created = cx
                 .send_request(NewSessionRequest::new(cwd))
                 .block_task()
                 .await?;
+            *session_id_for_client.lock().unwrap() = Some(created.session_id.0.to_string());
 
             let first = cx
                 .send_request(PromptRequest::new(
                     created.session_id.clone(),
                     vec![ContentBlock::from("first")],
                 ))
-                .block_task();
+                .block_task()
+                .await?;
+            assert_eq!(first.stop_reason, StopReason::EndTurn);
+
+            match mode_change {
+                ModeChange::SetMode(mode) => {
+                    cx.send_request(SetSessionModeRequest::new(created.session_id.clone(), mode))
+                        .block_task()
+                        .await?;
+                }
+                ModeChange::SetConfigOption(mode) => {
+                    cx.send_request(SetSessionConfigOptionRequest::new(
+                        created.session_id.clone(),
+                        "mode",
+                        mode,
+                    ))
+                    .block_task()
+                    .await?;
+                }
+            }
+
             let second = cx
                 .send_request(PromptRequest::new(
-                    created.session_id,
+                    created.session_id.clone(),
                     vec![ContentBlock::from("second")],
                 ))
-                .block_task();
-            let (first, second) = tokio::join!(first, second);
-            assert_eq!(first?.stop_reason, StopReason::EndTurn);
-            assert_eq!(second?.stop_reason, StopReason::EndTurn);
+                .block_task()
+                .await?;
+            assert_eq!(second.stop_reason, StopReason::EndTurn);
+
+            cx.send_request(CloseSessionRequest::new(created.session_id))
+                .block_task()
+                .await?;
             Ok(())
         })
         .await
         .expect("client connection");
 
     server_task.abort();
-    let rendered = format!("{:?}", notifications.lock().unwrap());
-    assert!(rendered.contains("response-1"));
-    assert!(rendered.contains("response-2"));
+
+    let session_id = session_id
+        .lock()
+        .unwrap()
+        .clone()
+        .expect("created session id");
+    let invocations =
+        fs::read_to_string(temp.path().join("invocations.log")).expect("fake cli invocation log");
+    let lines = invocations.lines().collect::<Vec<_>>();
+    assert_eq!(
+        lines,
+        vec![
+            format!("sid={session_id} resume= mode="),
+            format!("sid={session_id} resume={session_id} mode={expected_mode}"),
+        ],
+        "{invocations}"
+    );
 }
 
 struct EnvGuard {

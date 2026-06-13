@@ -1,5 +1,6 @@
 use std::{path::Path, sync::Arc};
 
+use acp_extension_claude_pty::acp::server::AcpServer;
 use agent_client_protocol::{
     Channel, Client,
     schema::{
@@ -7,7 +8,6 @@ use agent_client_protocol::{
         ListSessionsRequest, LoadSessionRequest, NewSessionRequest, ProtocolVersion,
     },
 };
-use claude_code_cli_acp::acp::server::AcpServer;
 
 #[tokio::test]
 async fn session_list_and_close_track_in_memory_sessions() {

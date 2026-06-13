@@ -1,7 +1,7 @@
 use std::fs;
 
+use acp_extension_claude_pty::config::commands::available_commands;
 use agent_client_protocol::schema::AvailableCommandInput;
-use claude_code_cli_acp::config::commands::available_commands;
 
 #[test]
 fn discovers_project_commands_and_skills_with_metadata() {

@@ -23,12 +23,12 @@ fi
 sed -i.bak "s/\"version\": \".*\"/\"version\": \"$VERSION\"/" "$PACKAGE_JSON"
 
 # Update optionalDependencies versions
-sed -i.bak "s/\"claude-code-cli-acp-darwin-arm64\": \".*\"/\"claude-code-cli-acp-darwin-arm64\": \"$VERSION\"/" "$PACKAGE_JSON"
-sed -i.bak "s/\"claude-code-cli-acp-darwin-x64\": \".*\"/\"claude-code-cli-acp-darwin-x64\": \"$VERSION\"/" "$PACKAGE_JSON"
-sed -i.bak "s/\"claude-code-cli-acp-linux-arm64\": \".*\"/\"claude-code-cli-acp-linux-arm64\": \"$VERSION\"/" "$PACKAGE_JSON"
-sed -i.bak "s/\"claude-code-cli-acp-linux-x64\": \".*\"/\"claude-code-cli-acp-linux-x64\": \"$VERSION\"/" "$PACKAGE_JSON"
-sed -i.bak "s/\"claude-code-cli-acp-win32-arm64\": \".*\"/\"claude-code-cli-acp-win32-arm64\": \"$VERSION\"/" "$PACKAGE_JSON"
-sed -i.bak "s/\"claude-code-cli-acp-win32-x64\": \".*\"/\"claude-code-cli-acp-win32-x64\": \"$VERSION\"/" "$PACKAGE_JSON"
+sed -i.bak "s/\"acp-extension-claude-pty-darwin-arm64\": \".*\"/\"acp-extension-claude-pty-darwin-arm64\": \"$VERSION\"/" "$PACKAGE_JSON"
+sed -i.bak "s/\"acp-extension-claude-pty-darwin-x64\": \".*\"/\"acp-extension-claude-pty-darwin-x64\": \"$VERSION\"/" "$PACKAGE_JSON"
+sed -i.bak "s/\"acp-extension-claude-pty-linux-arm64\": \".*\"/\"acp-extension-claude-pty-linux-arm64\": \"$VERSION\"/" "$PACKAGE_JSON"
+sed -i.bak "s/\"acp-extension-claude-pty-linux-x64\": \".*\"/\"acp-extension-claude-pty-linux-x64\": \"$VERSION\"/" "$PACKAGE_JSON"
+sed -i.bak "s/\"acp-extension-claude-pty-win32-arm64\": \".*\"/\"acp-extension-claude-pty-win32-arm64\": \"$VERSION\"/" "$PACKAGE_JSON"
+sed -i.bak "s/\"acp-extension-claude-pty-win32-x64\": \".*\"/\"acp-extension-claude-pty-win32-x64\": \"$VERSION\"/" "$PACKAGE_JSON"
 
 # Remove backup file
 rm -f "$PACKAGE_JSON.bak"

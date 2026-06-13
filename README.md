@@ -1,4 +1,4 @@
-# claude-code-cli-acp
+# acp-extension-claude-pty
 
 ACP adapter for the real interactive [Claude Code CLI](https://code.claude.com/docs/en/cli-reference).
 
@@ -15,15 +15,15 @@ Prerequisites:
 Recommended install after npm publication:
 
 ```sh
-npm install -g claude-code-cli-acp
-claude-code-cli-acp doctor
+npm install -g acp-extension-claude-pty
+acp-extension-claude-pty doctor
 ```
 
 Other supported install paths:
 
 ```sh
-cargo install claude-code-cli-acp --locked
-cargo install --git https://github.com/moabualruz/claude-code-cli-acp --locked
+cargo install acp-extension-claude-pty --locked
+cargo install --git https://github.com/Leeeon233/acp-extension-claude-pty --locked
 cargo install --path . --locked
 ```
 
@@ -34,7 +34,7 @@ Direct GitHub release archives and future Homebrew tap setup are documented in [
 Configure any ACP-compatible client to run:
 
 ```sh
-claude-code-cli-acp
+acp-extension-claude-pty
 ```
 
 The ACP server speaks JSON-RPC over stdio. Editor clients must launch it as a local agent process, not through a shell that writes prompts or banners to stdout.
@@ -48,27 +48,27 @@ Zed supports registry-installed external agents and manual custom agents. This a
 Interactive pass-through:
 
 ```sh
-claude-code-cli-acp interactive -- --model sonnet
+acp-extension-claude-pty interactive -- --model sonnet
 ```
 
 Default no-handshake invocation behaves like interactive pass-through, but do not alias over `claude`; that name belongs to the installed Claude Code CLI. If you want a shortcut, use a non-conflicting name:
 
 ```sh
-alias claude-acp='claude-code-cli-acp'
+alias claude-acp='acp-extension-claude-pty'
 ```
 
 Print mode drives interactive Claude and extracts transcript output. It must not call `claude -p` for core behavior:
 
 ```sh
-claude-code-cli-acp print "summarize this repo"
-echo "write release notes" | claude-code-cli-acp print --output-format json
+acp-extension-claude-pty print "summarize this repo"
+echo "write release notes" | acp-extension-claude-pty print --output-format json
 ```
 
 Doctor and drift checks:
 
 ```sh
-claude-code-cli-acp doctor
-claude-code-cli-acp doctor --live-docs
+acp-extension-claude-pty doctor
+acp-extension-claude-pty doctor --live-docs
 just drift-live
 ```
 
