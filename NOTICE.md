@@ -1,4 +1,4 @@
-claude-code-cli-acp
+acp-extension-claude-pty
 
 Inspiration and compatibility references:
 

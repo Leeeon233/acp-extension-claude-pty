@@ -213,6 +213,10 @@ impl ClaudePtySession {
         self.write_bytes(&input::ctrl_c())
     }
 
+    pub fn permission_mode(&self) -> Option<&str> {
+        self.permission_mode.as_deref()
+    }
+
     pub fn terminate(&mut self) -> anyhow::Result<()> {
         if self.child.try_wait().context("poll pty child")?.is_none() {
             self.child.kill().context("kill pty child")?;
@@ -317,7 +321,7 @@ fn write_mcp_config_file(config: &ClaudePtyConfig) -> anyhow::Result<Option<Path
         return Ok(None);
     }
     let path = std::env::temp_dir().join(format!(
-        "claude-code-cli-acp-mcp-{}-{}.json",
+        "acp-extension-claude-pty-mcp-{}-{}.json",
         config.session_id,
         Uuid::new_v4()
     ));

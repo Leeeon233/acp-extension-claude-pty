@@ -1,8 +1,8 @@
-use agent_client_protocol::schema::SessionConfigKind;
-use claude_code_cli_acp::config::{
+use acp_extension_claude_pty::config::{
     session::{SessionConfigState, resolve_permission_mode},
     settings::{ClaudeSettings, PermissionSettings},
 };
+use agent_client_protocol::schema::SessionConfigKind;
 
 #[test]
 fn resolves_permission_mode_aliases_with_default_fallback() {

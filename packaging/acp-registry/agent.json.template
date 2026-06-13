@@ -1,15 +1,15 @@
 {
-  "id": "claude-code-cli-acp",
-  "name": "Claude Code CLI ACP",
+  "id": "acp-extension-claude-pty",
+  "name": "ACP Extension Claude PTY",
   "version": "0.1.1",
   "description": "ACP adapter for the real interactive Claude Code CLI.",
-  "repository": "https://github.com/moabualruz/claude-code-cli-acp",
-  "website": "https://github.com/moabualruz/claude-code-cli-acp#readme",
+  "repository": "https://github.com/Leeeon233/acp-extension-claude-pty",
+  "website": "https://github.com/Leeeon233/acp-extension-claude-pty#readme",
   "authors": ["mkh"],
   "license": "Apache-2.0",
   "distribution": {
     "npx": {
-      "package": "claude-code-cli-acp@0.1.1",
+      "package": "acp-extension-claude-pty@0.1.1",
       "args": []
     }
   }

@@ -28,19 +28,19 @@ if [[ -z "${MACOS_CERTIFICATE:-}" || -z "${MACOS_CERTIFICATE_PASSWORD:-}" || -z 
 fi
 
 echo "Setting up keychain for code signing..."
-security create-keychain -p "$MACOS_CERTIFICATE_PASSWORD" claude-code-cli-acp.keychain || echo ""
-security default-keychain -s claude-code-cli-acp.keychain
-security unlock-keychain -p "$MACOS_CERTIFICATE_PASSWORD" claude-code-cli-acp.keychain
-security set-keychain-settings claude-code-cli-acp.keychain
-echo "$MACOS_CERTIFICATE" | base64 --decode > /tmp/claude-code-cli-acp-certificate.p12
-security import /tmp/claude-code-cli-acp-certificate.p12 -k claude-code-cli-acp.keychain -P "$MACOS_CERTIFICATE_PASSWORD" -T /usr/bin/codesign
-rm /tmp/claude-code-cli-acp-certificate.p12
-security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$MACOS_CERTIFICATE_PASSWORD" claude-code-cli-acp.keychain
+security create-keychain -p "$MACOS_CERTIFICATE_PASSWORD" acp-extension-claude-pty.keychain || echo ""
+security default-keychain -s acp-extension-claude-pty.keychain
+security unlock-keychain -p "$MACOS_CERTIFICATE_PASSWORD" acp-extension-claude-pty.keychain
+security set-keychain-settings acp-extension-claude-pty.keychain
+echo "$MACOS_CERTIFICATE" | base64 --decode > /tmp/acp-extension-claude-pty-certificate.p12
+security import /tmp/acp-extension-claude-pty-certificate.p12 -k acp-extension-claude-pty.keychain -P "$MACOS_CERTIFICATE_PASSWORD" -T /usr/bin/codesign
+rm /tmp/acp-extension-claude-pty-certificate.p12
+security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$MACOS_CERTIFICATE_PASSWORD" acp-extension-claude-pty.keychain
 
 function cleanup() {
     echo "Cleaning up keychain"
     security default-keychain -s login.keychain
-    security delete-keychain claude-code-cli-acp.keychain
+    security delete-keychain acp-extension-claude-pty.keychain
 }
 
 trap cleanup EXIT

@@ -6,7 +6,7 @@ param (
 
 $ErrorActionPreference = 'Stop'
 
-Write-Host "Windows code signing script for claude-code-cli-acp"
+Write-Host "Windows code signing script for acp-extension-claude-pty"
 Write-Host "Binary path: $BinaryPath"
 
 if (-not (Test-Path $BinaryPath)) {

@@ -173,9 +173,12 @@ impl ManagedSession {
 
     pub fn set_permission_mode(&self, permission_mode: Option<String>) -> anyhow::Result<()> {
         if let Some(permission_mode) = permission_mode.as_deref() {
-            self.config.lock().unwrap().set_mode(permission_mode)?;
-            *self.permission_mode.lock().unwrap() =
-                Some(self.config.lock().unwrap().mode().to_string());
+            let mode = {
+                let mut config = self.config.lock().unwrap();
+                config.set_mode(permission_mode)?;
+                config.mode().to_string()
+            };
+            *self.permission_mode.lock().unwrap() = Some(mode);
         } else {
             *self.permission_mode.lock().unwrap() = None;
         }
@@ -199,16 +202,18 @@ impl ManagedSession {
         config_id: &str,
         value: &SessionConfigValueId,
     ) -> anyhow::Result<Option<SessionUpdate>> {
-        let update = self.config.lock().unwrap().set_option(config_id, value)?;
-        match config_id {
-            "mode" => {
-                *self.permission_mode.lock().unwrap() =
-                    Some(self.config.lock().unwrap().mode().to_string());
-            }
-            "model" => {
-                *self.model.lock().unwrap() = Some(self.config.lock().unwrap().model().to_string());
-            }
-            _ => {}
+        let (update, mode, model) = {
+            let mut config = self.config.lock().unwrap();
+            let update = config.set_option(config_id, value)?;
+            let mode = (config_id == "mode").then(|| config.mode().to_string());
+            let model = (config_id == "model").then(|| config.model().to_string());
+            (update, mode, model)
+        };
+        if let Some(mode) = mode {
+            *self.permission_mode.lock().unwrap() = Some(mode);
+        }
+        if let Some(model) = model {
+            *self.model.lock().unwrap() = Some(model);
         }
         Ok(update)
     }
@@ -351,9 +356,43 @@ impl ManagedSession {
         options: &TurnOptions,
         prompt: &str,
     ) -> anyhow::Result<(ClaudePtySession, bool)> {
-        if let Some(pty) = self.pty.lock().unwrap().take() {
-            return Ok((pty, true));
+        let permission_mode = self.desired_permission_mode(options);
+        if let Some(mut pty) = self.pty.lock().unwrap().take() {
+            if permission_modes_match(permission_mode.as_deref(), pty.permission_mode()) {
+                return Ok((pty, true));
+            }
+            pty.terminate()?;
+            let config = self.pty_config(
+                options,
+                prompt,
+                permission_mode,
+                Some(self.session_id.0.to_string()),
+            );
+            return Ok((ClaudePtySession::spawn(config)?, true));
         }
+
+        let config = self.pty_config(options, prompt, permission_mode, options.resume.clone());
+        Ok((ClaudePtySession::spawn(config)?, false))
+    }
+
+    fn desired_permission_mode(&self, options: &TurnOptions) -> Option<String> {
+        if let Some(mode) = options.permission_mode.as_deref() {
+            return normalize_permission_mode(Some(mode));
+        }
+        if let Some(mode) = self.permission_mode.lock().unwrap().clone() {
+            return normalize_permission_mode(Some(&mode));
+        }
+        let mode = self.config.lock().unwrap().mode().to_string();
+        normalize_permission_mode(Some(&mode))
+    }
+
+    fn pty_config(
+        &self,
+        options: &TurnOptions,
+        prompt: &str,
+        permission_mode: Option<String>,
+        resume: Option<String>,
+    ) -> ClaudePtyConfig {
         let mut model = self
             .model
             .lock()
@@ -366,11 +405,7 @@ impl ManagedSession {
         if options.model.is_some() {
             model = options.model.clone();
         }
-        let permission_mode = options
-            .permission_mode
-            .clone()
-            .or_else(|| self.permission_mode.lock().unwrap().clone());
-        let config = ClaudePtyConfig {
+        ClaudePtyConfig {
             executable: self.claude.executable().to_path_buf(),
             cwd: self.cwd.clone(),
             session_id: self.session_id.0.to_string(),
@@ -379,7 +414,7 @@ impl ManagedSession {
             setting_sources: std::env::var("CLAUDE_CODE_ACP_SETTING_SOURCES")
                 .ok()
                 .filter(|sources| !sources.trim().is_empty()),
-            resume: options.resume.clone(),
+            resume,
             continue_last: options.continue_last,
             mcp_servers: self.mcp_servers.clone(),
             extra_args: if options.initial_prompt_argument {
@@ -389,9 +424,21 @@ impl ManagedSession {
             },
             rows: 24,
             cols: 80,
-        };
-        Ok((ClaudePtySession::spawn(config)?, false))
+        }
     }
+}
+
+fn normalize_permission_mode(mode: Option<&str>) -> Option<String> {
+    let mode = mode?.trim();
+    if mode.is_empty() || mode.eq_ignore_ascii_case("default") {
+        None
+    } else {
+        Some(mode.to_string())
+    }
+}
+
+fn permission_modes_match(desired: Option<&str>, active: Option<&str>) -> bool {
+    normalize_permission_mode(desired) == normalize_permission_mode(active)
 }
 
 #[derive(Clone, Debug)]
@@ -449,7 +496,27 @@ fn strip_duration_suffix(text: &str) -> &str {
 
 #[cfg(test)]
 mod tests {
-    use super::assistant_text_from_screen;
+    use super::{assistant_text_from_screen, normalize_permission_mode, permission_modes_match};
+
+    #[test]
+    fn permission_mode_normalization_treats_default_as_no_launch_flag() {
+        assert_eq!(normalize_permission_mode(None), None);
+        assert_eq!(normalize_permission_mode(Some("default")), None);
+        assert_eq!(normalize_permission_mode(Some(" DEFAULT ")), None);
+        assert_eq!(
+            normalize_permission_mode(Some("plan")),
+            Some("plan".to_string())
+        );
+    }
+
+    #[test]
+    fn permission_mode_comparison_treats_missing_and_default_as_equal() {
+        assert!(permission_modes_match(None, Some("default")));
+        assert!(permission_modes_match(Some("default"), None));
+        assert!(permission_modes_match(Some("plan"), Some("plan")));
+        assert!(!permission_modes_match(Some("plan"), None));
+        assert!(!permission_modes_match(Some("acceptEdits"), Some("plan")));
+    }
 
     #[test]
     fn assistant_text_from_screen_requires_assistant_line_shape() {

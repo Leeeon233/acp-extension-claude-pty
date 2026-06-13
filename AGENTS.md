@@ -1,6 +1,6 @@
-# claude-code-cli-acp agent instructions
+# acp-extension-claude-pty agent instructions
 
-This's a fork repo. use Leeeon233/claude-code-cli-acp as base if you open pull request.
+This's a fork repo. use Leeeon233/acp-extension-claude-pty as base if you open pull request.
 
 ## Required workflow
 

@@ -1,6 +1,6 @@
 use std::{collections::BTreeMap, fs};
 
-use claude_code_cli_acp::config::settings::{SettingsPaths, load_merged_settings};
+use acp_extension_claude_pty::config::settings::{SettingsPaths, load_merged_settings};
 
 #[test]
 fn settings_merge_sources_with_claude_precedence() {

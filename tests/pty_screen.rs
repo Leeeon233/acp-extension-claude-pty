@@ -3,15 +3,15 @@ use std::path::Path;
 use std::thread;
 use std::time::{Duration, Instant};
 
+use acp_extension_claude_pty::pty::input;
+use acp_extension_claude_pty::pty::session::{ClaudePtyConfig, ClaudePtySession, mcp_config_json};
+use acp_extension_claude_pty::terminal::recognizers::{
+    PermissionDecision, ScreenStatus, recognize_permission_dialog, recognize_screen,
+};
+use acp_extension_claude_pty::terminal::screen::TerminalScreen;
 use agent_client_protocol::schema::{
     EnvVariable, HttpHeader, McpServer, McpServerHttp, McpServerStdio,
 };
-use claude_code_cli_acp::pty::input;
-use claude_code_cli_acp::pty::session::{ClaudePtyConfig, ClaudePtySession, mcp_config_json};
-use claude_code_cli_acp::terminal::recognizers::{
-    PermissionDecision, ScreenStatus, recognize_permission_dialog, recognize_screen,
-};
-use claude_code_cli_acp::terminal::screen::TerminalScreen;
 
 #[cfg(unix)]
 fn write_executable(path: &Path, body: &str) {

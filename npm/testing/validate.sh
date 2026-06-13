@@ -24,7 +24,7 @@ check_command grep
 
 # 1. Validate wrapper script syntax
 echo "1. Validating wrapper script syntax..."
-if node -c npm/bin/claude-code-cli-acp.js 2>/dev/null; then
+if node -c npm/bin/acp-extension-claude-pty.js 2>/dev/null; then
   echo -e "${GREEN}✓ Wrapper script syntax is valid${NC}"
 else
   echo -e "${RED}✗ Wrapper script has syntax errors${NC}"
@@ -89,12 +89,12 @@ echo
 # 5. Verify optional dependencies list
 echo "5. Verifying platform packages..."
 EXPECTED_PACKAGES=(
-  "claude-code-cli-acp-darwin-arm64"
-  "claude-code-cli-acp-darwin-x64"
-  "claude-code-cli-acp-linux-arm64"
-  "claude-code-cli-acp-linux-x64"
-  "claude-code-cli-acp-win32-arm64"
-  "claude-code-cli-acp-win32-x64"
+  "acp-extension-claude-pty-darwin-arm64"
+  "acp-extension-claude-pty-darwin-x64"
+  "acp-extension-claude-pty-linux-arm64"
+  "acp-extension-claude-pty-linux-x64"
+  "acp-extension-claude-pty-win32-arm64"
+  "acp-extension-claude-pty-win32-x64"
 )
 
 missing_packages=0

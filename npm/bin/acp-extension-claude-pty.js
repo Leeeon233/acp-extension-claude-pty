@@ -10,16 +10,16 @@ function getPlatformPackage() {
 
   const platformMap = {
     darwin: {
-      arm64: "claude-code-cli-acp-darwin-arm64",
-      x64: "claude-code-cli-acp-darwin-x64",
+      arm64: "acp-extension-claude-pty-darwin-arm64",
+      x64: "acp-extension-claude-pty-darwin-x64",
     },
     linux: {
-      arm64: "claude-code-cli-acp-linux-arm64",
-      x64: "claude-code-cli-acp-linux-x64",
+      arm64: "acp-extension-claude-pty-linux-arm64",
+      x64: "acp-extension-claude-pty-linux-x64",
     },
     win32: {
-      arm64: "claude-code-cli-acp-win32-arm64",
-      x64: "claude-code-cli-acp-win32-x64",
+      arm64: "acp-extension-claude-pty-win32-arm64",
+      x64: "acp-extension-claude-pty-win32-x64",
     },
   };
 
@@ -42,8 +42,8 @@ function getBinaryPath() {
   const packageName = getPlatformPackage();
   const binaryName =
     process.platform === "win32"
-      ? "claude-code-cli-acp.exe"
-      : "claude-code-cli-acp";
+      ? "acp-extension-claude-pty.exe"
+      : "acp-extension-claude-pty";
 
   try {
     // Try to resolve the platform-specific package

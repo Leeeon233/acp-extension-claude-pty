@@ -1,46 +1,46 @@
 # Install
 
-`claude-code-cli-acp` requires a working Claude Code CLI. Install and authenticate Claude first:
+`acp-extension-claude-pty` requires a working Claude Code CLI. Install and authenticate Claude first:
 
 ```sh
 npm install -g @anthropic-ai/claude-code
 claude
 ```
 
-Run `claude-code-cli-acp doctor` after installing this adapter.
+Run `acp-extension-claude-pty doctor` after installing this adapter.
 
 ## npm
 
 Recommended for most users after publication:
 
 ```sh
-npm install -g claude-code-cli-acp
-claude-code-cli-acp doctor
+npm install -g acp-extension-claude-pty
+acp-extension-claude-pty doctor
 ```
 
 The npm package is a Node 18+ wrapper that installs one optional platform binary package:
 
-- `claude-code-cli-acp-darwin-arm64`
-- `claude-code-cli-acp-darwin-x64`
-- `claude-code-cli-acp-linux-arm64`
-- `claude-code-cli-acp-linux-x64`
-- `claude-code-cli-acp-win32-arm64`
-- `claude-code-cli-acp-win32-x64`
+- `acp-extension-claude-pty-darwin-arm64`
+- `acp-extension-claude-pty-darwin-x64`
+- `acp-extension-claude-pty-linux-arm64`
+- `acp-extension-claude-pty-linux-x64`
+- `acp-extension-claude-pty-win32-arm64`
+- `acp-extension-claude-pty-win32-x64`
 
-Use `npx claude-code-cli-acp doctor` only for quick checks. Configure editors with a stable installed binary, not a one-shot `npx` invocation.
+Use `npx acp-extension-claude-pty doctor` only for quick checks. Configure editors with a stable installed binary, not a one-shot `npx` invocation.
 
 ## Cargo
 
 After crates.io publication:
 
 ```sh
-cargo install claude-code-cli-acp --locked
+cargo install acp-extension-claude-pty --locked
 ```
 
 From the public git repository:
 
 ```sh
-cargo install --git https://github.com/moabualruz/claude-code-cli-acp --locked
+cargo install --git https://github.com/Leeeon233/acp-extension-claude-pty --locked
 ```
 
 From a local checkout:
@@ -55,28 +55,28 @@ Cargo installs binaries into Cargo's install root, usually `~/.cargo/bin`. Ensur
 
 Download the archive matching your platform from the GitHub release:
 
-- `claude-code-cli-acp-<version>-aarch64-apple-darwin.tar.gz`
-- `claude-code-cli-acp-<version>-x86_64-apple-darwin.tar.gz`
-- `claude-code-cli-acp-<version>-aarch64-unknown-linux-gnu.tar.gz`
-- `claude-code-cli-acp-<version>-x86_64-unknown-linux-gnu.tar.gz`
-- `claude-code-cli-acp-<version>-aarch64-pc-windows-msvc.zip`
-- `claude-code-cli-acp-<version>-x86_64-pc-windows-msvc.zip`
+- `acp-extension-claude-pty-<version>-aarch64-apple-darwin.tar.gz`
+- `acp-extension-claude-pty-<version>-x86_64-apple-darwin.tar.gz`
+- `acp-extension-claude-pty-<version>-aarch64-unknown-linux-gnu.tar.gz`
+- `acp-extension-claude-pty-<version>-x86_64-unknown-linux-gnu.tar.gz`
+- `acp-extension-claude-pty-<version>-aarch64-pc-windows-msvc.zip`
+- `acp-extension-claude-pty-<version>-x86_64-pc-windows-msvc.zip`
 
 Verify with the release `SHA256SUMS` file before placing the binary on `PATH`.
 
 macOS/Linux:
 
 ```sh
-tar xzf claude-code-cli-acp-<version>-<target>.tar.gz
-install -m 0755 claude-code-cli-acp /usr/local/bin/claude-code-cli-acp
-claude-code-cli-acp doctor
+tar xzf acp-extension-claude-pty-<version>-<target>.tar.gz
+install -m 0755 acp-extension-claude-pty /usr/local/bin/acp-extension-claude-pty
+acp-extension-claude-pty doctor
 ```
 
 Windows PowerShell:
 
 ```powershell
-Expand-Archive .\claude-code-cli-acp-<version>-<target>.zip .
-.\claude-code-cli-acp.exe doctor
+Expand-Archive .\acp-extension-claude-pty-<version>-<target>.zip .
+.\acp-extension-claude-pty.exe doctor
 ```
 
 ## Homebrew
@@ -84,8 +84,8 @@ Expand-Archive .\claude-code-cli-acp-<version>-<target>.zip .
 Homebrew support is intended through a tap after the first public GitHub release exists:
 
 ```sh
-brew tap moabualruz/claude-code-cli-acp
-brew install claude-code-cli-acp
+brew tap Leeeon233/acp-extension-claude-pty
+brew install acp-extension-claude-pty
 ```
 
 Until the tap formula is published, use npm, Cargo, or direct release assets.
@@ -95,7 +95,7 @@ Until the tap formula is published, use npm, Cargo, or direct release assets.
 Configure ACP clients to spawn:
 
 ```sh
-claude-code-cli-acp
+acp-extension-claude-pty
 ```
 
 Do not wrap the command in a script that writes banners or status text to stdout. ACP stdout must contain only JSON-RPC frames.
@@ -105,9 +105,9 @@ For Zed, use either the ACP Registry entry after publication or a manual custom 
 ```json
 {
   "agent_servers": {
-    "claude-code-cli-acp": {
+    "acp-extension-claude-pty": {
       "type": "custom",
-      "command": "claude-code-cli-acp",
+      "command": "acp-extension-claude-pty",
       "args": [],
       "env": {}
     }

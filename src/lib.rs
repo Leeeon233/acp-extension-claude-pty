@@ -1,4 +1,4 @@
-//! Claude Code CLI ACP adapter.
+//! ACP Extension Claude PTY adapter.
 //!
 //! The adapter exposes ACP over stdio while driving the installed `claude`
 //! executable through a PTY and reading Claude's JSONL transcript as the

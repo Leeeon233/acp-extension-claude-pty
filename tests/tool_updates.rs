@@ -1,9 +1,9 @@
+use acp_extension_claude_pty::{
+    acp::updates::TranscriptUpdateMapper, transcript::events::parse_transcript_line,
+};
 use agent_client_protocol::schema::{
     ContentBlock, SessionUpdate, TextContent, ToolCall, ToolCallContent, ToolCallStatus,
     ToolCallUpdate, ToolKind,
-};
-use claude_code_cli_acp::{
-    acp::updates::TranscriptUpdateMapper, transcript::events::parse_transcript_line,
 };
 use serde_json::json;
 

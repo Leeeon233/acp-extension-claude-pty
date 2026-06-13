@@ -1,17 +1,17 @@
 {
-  "name": "claude-code-cli-acp",
+  "name": "acp-extension-claude-pty",
   "version": "0.1.1",
   "type": "module",
   "description": "ACP adapter for the real Claude Code CLI",
   "license": "Apache-2.0",
   "author": "mkh",
-  "homepage": "https://github.com/moabualruz/claude-code-cli-acp",
+  "homepage": "https://github.com/Leeeon233/acp-extension-claude-pty",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/moabualruz/claude-code-cli-acp.git"
+    "url": "git+https://github.com/Leeeon233/acp-extension-claude-pty.git"
   },
   "bugs": {
-    "url": "https://github.com/moabualruz/claude-code-cli-acp/issues"
+    "url": "https://github.com/Leeeon233/acp-extension-claude-pty/issues"
   },
   "keywords": [
     "claude",
@@ -23,7 +23,7 @@
     "assistant"
   ],
   "bin": {
-    "claude-code-cli-acp": "bin/claude-code-cli-acp.js"
+    "acp-extension-claude-pty": "bin/acp-extension-claude-pty.js"
   },
   "engines": {
     "node": ">=18.0.0"
@@ -36,11 +36,11 @@
     "bin"
   ],
   "optionalDependencies": {
-    "claude-code-cli-acp-darwin-arm64": "0.1.1",
-    "claude-code-cli-acp-darwin-x64": "0.1.1",
-    "claude-code-cli-acp-linux-arm64": "0.1.1",
-    "claude-code-cli-acp-linux-x64": "0.1.1",
-    "claude-code-cli-acp-win32-arm64": "0.1.1",
-    "claude-code-cli-acp-win32-x64": "0.1.1"
+    "acp-extension-claude-pty-darwin-arm64": "0.1.1",
+    "acp-extension-claude-pty-darwin-x64": "0.1.1",
+    "acp-extension-claude-pty-linux-arm64": "0.1.1",
+    "acp-extension-claude-pty-linux-x64": "0.1.1",
+    "acp-extension-claude-pty-win32-arm64": "0.1.1",
+    "acp-extension-claude-pty-win32-x64": "0.1.1"
   }
 }
