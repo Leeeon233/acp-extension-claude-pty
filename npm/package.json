@@ -1,6 +1,6 @@
 {
   "name": "acp-extension-claude-pty",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "type": "module",
   "description": "ACP adapter for the real Claude Code CLI",
   "license": "Apache-2.0",
@@ -36,11 +36,11 @@
     "bin"
   ],
   "optionalDependencies": {
-    "acp-extension-claude-pty-darwin-arm64": "0.1.1",
-    "acp-extension-claude-pty-darwin-x64": "0.1.1",
-    "acp-extension-claude-pty-linux-arm64": "0.1.1",
-    "acp-extension-claude-pty-linux-x64": "0.1.1",
-    "acp-extension-claude-pty-win32-arm64": "0.1.1",
-    "acp-extension-claude-pty-win32-x64": "0.1.1"
+    "acp-extension-claude-pty-darwin-arm64": "0.1.2",
+    "acp-extension-claude-pty-darwin-x64": "0.1.2",
+    "acp-extension-claude-pty-linux-arm64": "0.1.2",
+    "acp-extension-claude-pty-linux-x64": "0.1.2",
+    "acp-extension-claude-pty-win32-arm64": "0.1.2",
+    "acp-extension-claude-pty-win32-x64": "0.1.2"
   }
 }

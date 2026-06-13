@@ -31,7 +31,7 @@ Full local gate:
 just ci
 ```
 
-`just ci` includes Rust fmt/lint/tests, Cargo package dry-run, npm package dry-runs, npm wrapper validation, and platform detection tests.
+`just ci` includes Rust fmt/lint/tests, npm package dry-runs, npm wrapper validation, and platform detection tests.
 
 Live checks:
 
@@ -53,8 +53,6 @@ just package-dry-run
 
 This verifies:
 
-- `cargo package --list`
-- `cargo publish --dry-run --locked`
 - Generated platform npm package layout
 - `npm pack --dry-run --json` for base and platform packages
 

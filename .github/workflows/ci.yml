@@ -44,11 +44,6 @@ jobs:
       - name: Run tests
         run: cargo test --workspace --all-targets --all-features
 
-      - name: Check Cargo package
-        run: |
-          cargo package --list
-          cargo publish --dry-run --locked
-
   npm-validation:
     name: NPM package validation
     runs-on: ubuntu-latest

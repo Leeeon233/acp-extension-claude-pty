@@ -22,7 +22,6 @@ acp-extension-claude-pty doctor
 Other supported install paths:
 
 ```sh
-cargo install acp-extension-claude-pty --locked
 cargo install --git https://github.com/Leeeon233/acp-extension-claude-pty --locked
 cargo install --path . --locked
 ```
