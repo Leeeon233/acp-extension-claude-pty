@@ -158,6 +158,30 @@ fn pty_config_builds_interactive_launch_args_without_print_mode() {
 }
 
 #[test]
+fn pty_config_omits_session_id_when_resuming() {
+    let config = ClaudePtyConfig {
+        executable: "claude".into(),
+        session_id: "11111111-1111-4111-8111-111111111111".into(),
+        resume: Some("11111111-1111-4111-8111-111111111111".into()),
+        permission_mode: Some("acceptEdits".into()),
+        ..ClaudePtyConfig::default()
+    };
+
+    let argv = config.launch_argv().expect("launch argv");
+    let argv = argv
+        .iter()
+        .map(|arg| arg.to_string_lossy().to_string())
+        .collect::<Vec<_>>();
+
+    assert_eq!(argv[0], "claude");
+    assert!(!argv.contains(&"--session-id".to_string()));
+    assert!(argv.contains(&"--resume".to_string()));
+    assert!(argv.contains(&"11111111-1111-4111-8111-111111111111".to_string()));
+    assert!(argv.contains(&"--permission-mode".to_string()));
+    assert!(argv.contains(&"acceptEdits".to_string()));
+}
+
+#[test]
 fn mcp_servers_convert_to_claude_mcp_config_json() {
     let config = mcp_config_json(&[
         McpServer::Stdio(

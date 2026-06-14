@@ -54,17 +54,21 @@ async fn run_dynamic_mode_case(mode_change: ModeChange, expected_mode: &'static 
         &fake,
         r#"#!/bin/sh
 sid=""
+sid_arg=""
 resume=""
 mode=""
 while [ "$#" -gt 0 ]; do
   case "$1" in
-    --session-id) sid="$2"; shift 2 ;;
+    --session-id) sid_arg="$2"; sid="$2"; shift 2 ;;
     --resume) resume="$2"; shift 2 ;;
     --permission-mode) mode="$2"; shift 2 ;;
     *) shift ;;
   esac
 done
-printf 'sid=%s resume=%s mode=%s\n' "$sid" "$resume" "$mode" >> "$HOME/invocations.log"
+if [ -z "$sid" ] && [ -n "$resume" ]; then
+  sid="$resume"
+fi
+printf 'sid_arg=%s effective_sid=%s resume=%s mode=%s\n' "$sid_arg" "$sid" "$resume" "$mode" >> "$HOME/invocations.log"
 mkdir -p "$HOME/.claude/projects/fake-project"
 transcript="$HOME/.claude/projects/fake-project/$sid.jsonl"
 printf 'Claude ready\r\n❯ '
@@ -167,8 +171,8 @@ done
     assert_eq!(
         lines,
         vec![
-            format!("sid={session_id} resume= mode="),
-            format!("sid={session_id} resume={session_id} mode={expected_mode}"),
+            format!("sid_arg={session_id} effective_sid={session_id} resume= mode="),
+            format!("sid_arg= effective_sid={session_id} resume={session_id} mode={expected_mode}"),
         ],
         "{invocations}"
     );

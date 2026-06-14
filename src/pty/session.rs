@@ -1,7 +1,11 @@
 use std::ffi::OsString;
+use std::fs::File;
 use std::io::{Read, Write};
 use std::path::PathBuf;
-use std::sync::{Arc, Mutex};
+use std::sync::{
+    Arc, Mutex,
+    atomic::{AtomicUsize, Ordering},
+};
 use std::thread::{self, JoinHandle};
 use std::time::Duration;
 
@@ -27,6 +31,8 @@ const CLAUDE_2_1_169_SUBMIT_RETRY_DELAYS: [Duration; 3] = [
     Duration::from_millis(1_500),
     Duration::from_millis(2_000),
 ];
+const DEBUG_PTY_CAPTURE_DIR_ENV: &str = "CLAUDE_CODE_ACP_DEBUG_PTY_DIR";
+static DEBUG_PTY_CAPTURE_COUNTER: AtomicUsize = AtomicUsize::new(0);
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ClaudePtyConfig {
@@ -67,8 +73,10 @@ impl ClaudePtyConfig {
     pub fn launch_argv(&self) -> anyhow::Result<Vec<OsString>> {
         let mut argv = Vec::new();
         argv.push(self.executable.clone().into_os_string());
-        argv.push("--session-id".into());
-        argv.push(self.session_id.clone().into());
+        if self.resume.is_none() && !self.continue_last {
+            argv.push("--session-id".into());
+            argv.push(self.session_id.clone().into());
+        }
         if let Some(model) = &self.model {
             argv.push("--model".into());
             argv.push(model.into());
@@ -142,12 +150,17 @@ impl ClaudePtySession {
 
         let screen = Arc::new(Mutex::new(TerminalScreen::new(config.rows, config.cols)));
         let reader_screen = Arc::clone(&screen);
+        let mut debug_capture = open_debug_pty_capture(&config)?;
         let reader_thread = thread::spawn(move || {
             let mut buffer = [0_u8; 8192];
             loop {
                 match reader.read(&mut buffer) {
                     Ok(0) => break,
                     Ok(read) => {
+                        if let Some(file) = debug_capture.as_mut() {
+                            drop(file.write_all(&buffer[..read]));
+                            drop(file.flush());
+                        }
                         if let Ok(mut screen) = reader_screen.lock() {
                             screen.process(&buffer[..read]);
                         } else {
@@ -303,6 +316,44 @@ fn write_mcp_config_file(config: &ClaudePtyConfig) -> anyhow::Result<Option<Path
     let body = serde_json::to_vec(&mcp_config_json(&config.mcp_servers))?;
     std::fs::write(&path, body).context("write temporary Claude MCP config")?;
     Ok(Some(path))
+}
+
+fn open_debug_pty_capture(config: &ClaudePtyConfig) -> anyhow::Result<Option<File>> {
+    let Some(dir) = std::env::var_os(DEBUG_PTY_CAPTURE_DIR_ENV) else {
+        return Ok(None);
+    };
+    let dir = PathBuf::from(dir);
+    std::fs::create_dir_all(&dir)
+        .with_context(|| format!("create PTY debug capture directory {}", dir.display()))?;
+    let index = DEBUG_PTY_CAPTURE_COUNTER.fetch_add(1, Ordering::Relaxed) + 1;
+    let phase = if config.resume.is_some() {
+        "resume"
+    } else {
+        "new"
+    };
+    let mode = config.permission_mode.as_deref().unwrap_or("default");
+    let filename = format!(
+        "{index:03}-{}-{phase}-{}.ansi",
+        sanitize_debug_filename(&config.session_id),
+        sanitize_debug_filename(mode)
+    );
+    let path = dir.join(filename);
+    File::create(&path)
+        .with_context(|| format!("create PTY debug capture {}", path.display()))
+        .map(Some)
+}
+
+fn sanitize_debug_filename(value: &str) -> String {
+    value
+        .chars()
+        .map(|character| {
+            if character.is_ascii_alphanumeric() || matches!(character, '-' | '_' | '.') {
+                character
+            } else {
+                '_'
+            }
+        })
+        .collect()
 }
 
 pub fn mcp_config_json(servers: &[McpServer]) -> Value {

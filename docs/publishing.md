@@ -65,12 +65,12 @@ The npm job already has `id-token: write` and runs `npm publish --provenance --a
 To publish a future release from GitHub:
 
 ```sh
-git tag -a v0.1.3 -m "Release v0.1.3"
-git push origin main v0.1.3
+git tag -a v0.1.4 -m "Release v0.1.4"
+git push origin main v0.1.4
 gh workflow run Release \
   --repo Leeeon233/acp-extension-claude-pty \
   --ref main \
-  -f tag_name=v0.1.3 \
+  -f tag_name=v0.1.4 \
   -f draft_release=false \
   -f prerelease=false \
   -f sign_artifacts=false \
@@ -164,7 +164,7 @@ Recommended first registry distribution:
 {
   "distribution": {
     "npx": {
-      "package": "acp-extension-claude-pty@0.1.3",
+      "package": "acp-extension-claude-pty@0.1.4",
       "args": []
     }
   }
