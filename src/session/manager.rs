@@ -494,66 +494,6 @@ fn strip_duration_suffix(text: &str) -> &str {
         .unwrap_or(text)
 }
 
-#[cfg(test)]
-mod tests {
-    use super::{assistant_text_from_screen, normalize_permission_mode, permission_modes_match};
-
-    #[test]
-    fn permission_mode_normalization_treats_default_as_no_launch_flag() {
-        assert_eq!(normalize_permission_mode(None), None);
-        assert_eq!(normalize_permission_mode(Some("default")), None);
-        assert_eq!(normalize_permission_mode(Some(" DEFAULT ")), None);
-        assert_eq!(
-            normalize_permission_mode(Some("plan")),
-            Some("plan".to_string())
-        );
-    }
-
-    #[test]
-    fn permission_mode_comparison_treats_missing_and_default_as_equal() {
-        assert!(permission_modes_match(None, Some("default")));
-        assert!(permission_modes_match(Some("default"), None));
-        assert!(permission_modes_match(Some("plan"), Some("plan")));
-        assert!(!permission_modes_match(Some("plan"), None));
-        assert!(!permission_modes_match(Some("acceptEdits"), Some("plan")));
-    }
-
-    #[test]
-    fn assistant_text_from_screen_requires_assistant_line_shape() {
-        let screen = "user typed a marker: ⏺ not assistant\n  ⏺ OK. (1.0s)\n";
-        assert_eq!(assistant_text_from_screen(screen).as_deref(), Some("OK."));
-    }
-
-    #[test]
-    fn assistant_text_from_screen_uses_latest_assistant_line() {
-        let screen = "  ⏺ stale text\n  ⏺ current text\n";
-        assert_eq!(
-            assistant_text_from_screen(screen).as_deref(),
-            Some("current text")
-        );
-    }
-
-    #[test]
-    fn assistant_text_from_screen_preserves_non_duration_parenthetical() {
-        let screen = "  ⏺ use foo (bar) now\n";
-        assert_eq!(
-            assistant_text_from_screen(screen).as_deref(),
-            Some("use foo (bar) now")
-        );
-    }
-
-    #[test]
-    fn assistant_text_from_screen_rejects_marker_inside_non_assistant_line() {
-        let screen = "tool output mentions ⏺ but is not an assistant line\n";
-        assert_eq!(assistant_text_from_screen(screen), None);
-    }
-
-    #[test]
-    fn assistant_text_from_screen_rejects_empty_assistant_line() {
-        assert_eq!(assistant_text_from_screen("⏺   \n"), None);
-    }
-}
-
 fn permission_fingerprint(dialog: &PermissionDialog) -> String {
     format!(
         "{}::{:?}",
@@ -624,5 +564,65 @@ impl ScreenFallback for String {
         } else {
             self
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{assistant_text_from_screen, normalize_permission_mode, permission_modes_match};
+
+    #[test]
+    fn permission_mode_normalization_treats_default_as_no_launch_flag() {
+        assert_eq!(normalize_permission_mode(None), None);
+        assert_eq!(normalize_permission_mode(Some("default")), None);
+        assert_eq!(normalize_permission_mode(Some(" DEFAULT ")), None);
+        assert_eq!(
+            normalize_permission_mode(Some("plan")),
+            Some("plan".to_string())
+        );
+    }
+
+    #[test]
+    fn permission_mode_comparison_treats_missing_and_default_as_equal() {
+        assert!(permission_modes_match(None, Some("default")));
+        assert!(permission_modes_match(Some("default"), None));
+        assert!(permission_modes_match(Some("plan"), Some("plan")));
+        assert!(!permission_modes_match(Some("plan"), None));
+        assert!(!permission_modes_match(Some("acceptEdits"), Some("plan")));
+    }
+
+    #[test]
+    fn assistant_text_from_screen_requires_assistant_line_shape() {
+        let screen = "user typed a marker: ⏺ not assistant\n  ⏺ OK. (1.0s)\n";
+        assert_eq!(assistant_text_from_screen(screen).as_deref(), Some("OK."));
+    }
+
+    #[test]
+    fn assistant_text_from_screen_uses_latest_assistant_line() {
+        let screen = "  ⏺ stale text\n  ⏺ current text\n";
+        assert_eq!(
+            assistant_text_from_screen(screen).as_deref(),
+            Some("current text")
+        );
+    }
+
+    #[test]
+    fn assistant_text_from_screen_preserves_non_duration_parenthetical() {
+        let screen = "  ⏺ use foo (bar) now\n";
+        assert_eq!(
+            assistant_text_from_screen(screen).as_deref(),
+            Some("use foo (bar) now")
+        );
+    }
+
+    #[test]
+    fn assistant_text_from_screen_rejects_marker_inside_non_assistant_line() {
+        let screen = "tool output mentions ⏺ but is not an assistant line\n";
+        assert_eq!(assistant_text_from_screen(screen), None);
+    }
+
+    #[test]
+    fn assistant_text_from_screen_rejects_empty_assistant_line() {
+        assert_eq!(assistant_text_from_screen("⏺   \n"), None);
     }
 }
