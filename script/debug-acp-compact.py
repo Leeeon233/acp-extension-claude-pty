@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run a real ACP mode-switch session and capture debug artifacts."""
+"""Run a real ACP `/compact` prompt turn and capture debug artifacts."""
 
 from __future__ import annotations
 
@@ -31,10 +31,8 @@ class AcpClient:
         self.proc: asyncio.subprocess.Process | None = None
         self.next_id = 1
         self.pending: dict[int, asyncio.Future[dict[str, Any]]] = {}
-        self.messages_path = out_dir / "acp-messages.jsonl"
-        self.stderr_path = out_dir / "agent-stderr.log"
-        self.messages_file = self.messages_path.open("w", encoding="utf-8")
-        self.stderr_file = self.stderr_path.open("w", encoding="utf-8")
+        self.messages_file = (out_dir / "acp-messages.jsonl").open("w", encoding="utf-8")
+        self.stderr_file = (out_dir / "agent-stderr.log").open("w", encoding="utf-8")
         self.reader_task: asyncio.Task[None] | None = None
         self.stderr_task: asyncio.Task[None] | None = None
 
@@ -84,7 +82,8 @@ class AcpClient:
         await self.proc.stdin.drain()
         response = await asyncio.wait_for(future, timeout=timeout)
         if "error" in response:
-            raise RuntimeError(f"{method} failed: {json.dumps(response['error'], ensure_ascii=False)}")
+            error = json.dumps(response["error"], ensure_ascii=False)
+            raise RuntimeError(f"{method} failed: {error}")
         return response.get("result", {})
 
     async def _read_stdout(self) -> None:
@@ -113,22 +112,21 @@ class AcpClient:
             line = await self.proc.stderr.readline()
             if not line:
                 break
-            text = line.decode("utf-8", errors="replace")
-            self.stderr_file.write(text)
+            self.stderr_file.write(line.decode("utf-8", errors="replace"))
             self.stderr_file.flush()
 
     async def _answer_permission_request(self, message: dict[str, Any]) -> None:
         assert self.proc is not None and self.proc.stdin is not None
         params = message.get("params") or {}
         options = params.get("options") or []
-        option = choose_permission_option(options)
+        option_id = choose_permission_option(options)
         response = {
             "jsonrpc": "2.0",
             "id": message["id"],
             "result": {
                 "outcome": {
                     "outcome": "selected",
-                    "optionId": option,
+                    "optionId": option_id,
                 }
             },
         }
@@ -159,22 +157,11 @@ def parse_args() -> argparse.Namespace:
         default="target/debug/acp-extension-claude-pty",
         help="ACP adapter binary to run",
     )
-    parser.add_argument(
-        "--out-dir",
-        type=Path,
-        default=None,
-        help="Directory for debug artifacts",
-    )
-    parser.add_argument(
-        "--workdir",
-        type=Path,
-        default=None,
-        help="Disposable project directory to use as ACP cwd",
-    )
-    parser.add_argument("--startup-timeout", type=int, default=20)
+    parser.add_argument("--out-dir", type=Path, default=None)
+    parser.add_argument("--workdir", type=Path, default=None)
+    parser.add_argument("--prompt", default="/compact")
+    parser.add_argument("--startup-timeout", type=int, default=25)
     parser.add_argument("--request-timeout", type=int, default=180)
-    parser.add_argument("--first-mode", default="plan")
-    parser.add_argument("--second-mode", default="acceptEdits")
     parser.add_argument(
         "--setting-sources",
         default=None,
@@ -193,7 +180,7 @@ async def run() -> int:
         raise SystemExit(f"agent binary not found: {agent}; run `cargo build` first")
 
     stamp = time.strftime("%Y%m%d-%H%M%S")
-    out_dir = args.out_dir or (repo / "target" / "acp-mode-switch-debug" / stamp)
+    out_dir = args.out_dir or (repo / "target" / "acp-compact-debug" / stamp)
     out_dir.mkdir(parents=True, exist_ok=True)
     pty_dir = out_dir / "pty"
     pty_dir.mkdir(parents=True, exist_ok=True)
@@ -201,7 +188,7 @@ async def run() -> int:
     workdir = args.workdir
     temp_workdir: tempfile.TemporaryDirectory[str] | None = None
     if workdir is None:
-        temp_workdir = tempfile.TemporaryDirectory(prefix="acp-mode-switch-")
+        temp_workdir = tempfile.TemporaryDirectory(prefix="acp-compact-")
         workdir = Path(temp_workdir.name)
     workdir = workdir.resolve()
     workdir.mkdir(parents=True, exist_ok=True)
@@ -224,8 +211,7 @@ async def run() -> int:
         "outDir": str(out_dir),
         "agent": str(agent),
         "command": command,
-        "firstMode": args.first_mode,
-        "secondMode": args.second_mode,
+        "prompt": args.prompt,
     }
     (out_dir / "summary.json").write_text(
         json.dumps(summary, indent=2, ensure_ascii=False) + "\n",
@@ -239,7 +225,7 @@ async def run() -> int:
             {
                 "protocolVersion": 1,
                 "clientCapabilities": {},
-                "clientInfo": {"name": "debug-acp-mode-switch", "version": "0.1.0"},
+                "clientInfo": {"name": "debug-acp-compact", "version": "0.1.0"},
             },
             timeout=args.request_timeout,
         )
@@ -255,43 +241,15 @@ async def run() -> int:
         session_id = created["sessionId"]
         summary["sessionId"] = session_id
 
-        await client.request(
-            "session/set_mode",
-            {"sessionId": session_id, "modeId": args.first_mode},
-            timeout=args.request_timeout,
-        )
-        await client.request(
+        prompt_response = await client.request(
             "session/prompt",
             {
                 "sessionId": session_id,
-                "prompt": [
-                    {
-                        "type": "text",
-                        "text": "Reply exactly ACP_MODE_SWITCH_PLAN_READY. Do not use tools.",
-                    }
-                ],
+                "prompt": [{"type": "text", "text": args.prompt}],
             },
             timeout=args.request_timeout,
         )
-
-        await client.request(
-            "session/set_mode",
-            {"sessionId": session_id, "modeId": args.second_mode},
-            timeout=args.request_timeout,
-        )
-        await client.request(
-            "session/prompt",
-            {
-                "sessionId": session_id,
-                "prompt": [
-                    {
-                        "type": "text",
-                        "text": "Reply exactly ACP_MODE_SWITCH_SECOND_READY. Do not use tools.",
-                    }
-                ],
-            },
-            timeout=args.request_timeout,
-        )
+        summary["promptResponse"] = prompt_response
         await client.request(
             "session/close",
             {"sessionId": session_id},
@@ -325,8 +283,7 @@ def write_pty_text_views(pty_dir: Path) -> None:
         raw = path.read_bytes()
         decoded = raw.decode("utf-8", errors="replace")
         visible = ANSI_RE.sub("", decoded)
-        text_path = path.with_suffix(".txt")
-        text_path.write_text(visible, encoding="utf-8")
+        path.with_suffix(".txt").write_text(visible, encoding="utf-8")
         combined.append(f"===== {path.name} =====\n{visible}\n")
     if combined:
         (pty_dir / "pty-visible-combined.txt").write_text(

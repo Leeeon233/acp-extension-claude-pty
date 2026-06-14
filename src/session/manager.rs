@@ -264,16 +264,33 @@ impl ManagedSession {
                 events.extend(tailer.poll()?);
             }
             let screen_text = pty.screen_snapshot();
-            let screen_is_idle = screen_text
+            let screen_status = screen_text
                 .as_deref()
                 .ok()
-                .is_some_and(recognizers::recognize_idle);
+                .map(recognizers::recognize_screen);
+            let screen_can_complete_event = screen_text
+                .as_deref()
+                .ok()
+                .is_some_and(screen_can_complete_transcript_event);
+            let screen_can_complete_fallback = screen_text
+                .as_deref()
+                .ok()
+                .is_some_and(screen_can_complete_without_transcript_event);
             let has_assistant_event = events.iter().any(is_assistant_terminal_event);
-            if has_assistant_event && (screen_is_idle || screen_text.is_err()) {
+            let has_local_command_event =
+                events.iter().any(TranscriptEvent::is_local_command_output);
+            if has_assistant_event && (screen_can_complete_event || screen_text.is_err()) {
+                break;
+            }
+            if has_local_command_event
+                && (screen_can_complete_event
+                    || screen_status == Some(recognizers::ScreenStatus::Error)
+                    || screen_text.is_err())
+            {
                 break;
             }
             if !has_assistant_event
-                && screen_is_idle
+                && screen_can_complete_fallback
                 && screen_text
                     .as_deref()
                     .ok()
@@ -443,6 +460,16 @@ fn normalize_permission_mode(mode: Option<&str>) -> Option<String> {
 
 fn permission_modes_match(desired: Option<&str>, active: Option<&str>) -> bool {
     normalize_permission_mode(desired) == normalize_permission_mode(active)
+}
+
+fn screen_can_complete_transcript_event(text: &str) -> bool {
+    recognizers::recognize_idle(text) && !recognizers::recognize_thinking(text)
+}
+
+fn screen_can_complete_without_transcript_event(text: &str) -> bool {
+    screen_can_complete_transcript_event(text)
+        && !recognizers::recognize_permission(text)
+        && !recognizers::recognize_workspace_trust(text)
 }
 
 #[derive(Clone, Debug)]

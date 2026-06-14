@@ -2,15 +2,16 @@ use std::{
     fs,
     path::Path,
     sync::{Arc, Mutex},
+    time::Duration,
 };
 
 use acp_extension_claude_pty::acp::server::AcpServer;
 use agent_client_protocol::{
     Channel, Client,
     schema::{
-        AuthCapabilities, AuthMethod, CancelNotification, ClientCapabilities, ContentBlock,
-        Implementation, InitializeRequest, LoadSessionRequest, NewSessionRequest, PromptRequest,
-        ProtocolVersion, RequestPermissionOutcome, RequestPermissionRequest,
+        AuthCapabilities, AuthMethod, CancelNotification, ClientCapabilities, CloseSessionRequest,
+        ContentBlock, Implementation, InitializeRequest, LoadSessionRequest, NewSessionRequest,
+        PromptRequest, ProtocolVersion, RequestPermissionOutcome, RequestPermissionRequest,
         RequestPermissionResponse, SelectedPermissionOutcome, SessionNotification,
         SetSessionModeRequest, StopReason,
     },
@@ -224,6 +225,196 @@ done
             .unwrap()
             .iter()
             .any(|notification| format!("{:?}", notification.update).contains("acp permission ok"))
+    );
+}
+
+#[tokio::test]
+#[cfg(unix)]
+#[serial]
+async fn local_slash_command_output_completes_prompt_turn() {
+    let temp = tempfile::tempdir().expect("tempdir");
+    let fake = temp.path().join("claude-fake-local-command");
+    write_executable(
+        &fake,
+        r#"#!/bin/sh
+sid=""
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    --session-id) sid="$2"; shift 2 ;;
+    --resume) sid="$2"; shift 2 ;;
+    *) shift ;;
+  esac
+done
+mkdir -p "$HOME/.claude/projects/fake-project"
+transcript="$HOME/.claude/projects/fake-project/$sid.jsonl"
+: > "$transcript"
+printf 'Claude ready\r\n❯ '
+while IFS= read -r line; do
+  printf '{"type":"user","sessionId":"%s","message":{"role":"user","content":[{"type":"text","text":"<command-name>/compact</command-name><command-message>compact</command-message><command-args></command-args>"}]}}\n' "$sid" >> "$transcript"
+  printf '{"type":"system","subtype":"local_command","sessionId":"%s","content":"<local-command-stderr>Error: No messages to compact</local-command-stderr>"}\n' "$sid" >> "$transcript"
+  printf '\r\n⎿  Error: No messages to compact\r\n❯ '
+done
+"#,
+    );
+
+    let _env = EnvGuard::set([("CLAUDE_CODE_CLI", fake.as_path()), ("HOME", temp.path())]);
+    let notifications = Arc::new(Mutex::new(Vec::<SessionNotification>::new()));
+    let (client_transport, server_transport) = Channel::duplex();
+    let server = Arc::new(AcpServer::with_startup_prompt_timeout(Duration::from_secs(
+        2,
+    )));
+    let server_task = tokio::spawn(server.serve(server_transport));
+    let notifications_for_client = Arc::clone(&notifications);
+    let cwd = temp.path().to_path_buf();
+
+    tokio::time::timeout(
+        Duration::from_secs(10),
+        Client
+            .builder()
+            .on_receive_notification(
+                async move |notification: SessionNotification, _cx| {
+                    notifications_for_client.lock().unwrap().push(notification);
+                    Ok(())
+                },
+                agent_client_protocol::on_receive_notification!(),
+            )
+            .connect_with(client_transport, async move |cx| {
+                cx.send_request(
+                    InitializeRequest::new(ProtocolVersion::V1)
+                        .client_capabilities(ClientCapabilities::default())
+                        .client_info(Implementation::new("local-command-client", "0.0.0")),
+                )
+                .block_task()
+                .await?;
+
+                let created = cx
+                    .send_request(NewSessionRequest::new(cwd))
+                    .block_task()
+                    .await?;
+                let prompt_response = cx
+                    .send_request(PromptRequest::new(
+                        created.session_id.clone(),
+                        vec![ContentBlock::from("/compact")],
+                    ))
+                    .block_task()
+                    .await?;
+                assert_eq!(prompt_response.stop_reason, StopReason::EndTurn);
+                cx.send_request(CloseSessionRequest::new(created.session_id))
+                    .block_task()
+                    .await?;
+                Ok(())
+            }),
+    )
+    .await
+    .expect("local slash command prompt should not time out")
+    .expect("client connection");
+
+    server_task.abort();
+
+    assert!(notifications.lock().unwrap().iter().any(|notification| {
+        format!("{:?}", notification.update).contains("Error: No messages to compact")
+    }));
+}
+
+#[tokio::test]
+#[cfg(unix)]
+#[serial]
+async fn thinking_screen_with_stale_prompt_does_not_complete_turn() {
+    let temp = tempfile::tempdir().expect("tempdir");
+    let fake = temp.path().join("claude-fake-thinking-screen");
+    write_executable(
+        &fake,
+        r#"#!/bin/sh
+sid=""
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    --session-id) sid="$2"; shift 2 ;;
+    --resume) sid="$2"; shift 2 ;;
+    *) shift ;;
+  esac
+done
+mkdir -p "$HOME/.claude/projects/fake-project"
+transcript="$HOME/.claude/projects/fake-project/$sid.jsonl"
+: > "$transcript"
+printf 'Claude ready\r\n❯ '
+while IFS= read -r line; do
+  printf '\r\n❯/review\r\n⏺ Thinking for 2s, running 1 shell command…\r\n'
+  sleep 1
+  printf '{"type":"assistant","sessionId":"%s","message":{"role":"assistant","content":[{"type":"text","text":"review complete"}],"model":"fake-model"}}\n' "$sid" >> "$transcript"
+  printf '\033[2J\033[H⏺ review complete\r\n❯ '
+done
+"#,
+    );
+
+    let _env = EnvGuard::set([("CLAUDE_CODE_CLI", fake.as_path()), ("HOME", temp.path())]);
+    let notifications = Arc::new(Mutex::new(Vec::<SessionNotification>::new()));
+    let (client_transport, server_transport) = Channel::duplex();
+    let server = Arc::new(AcpServer::with_startup_prompt_timeout(Duration::from_secs(
+        2,
+    )));
+    let server_task = tokio::spawn(server.serve(server_transport));
+    let notifications_for_client = Arc::clone(&notifications);
+    let cwd = temp.path().to_path_buf();
+
+    tokio::time::timeout(
+        Duration::from_secs(10),
+        Client
+            .builder()
+            .on_receive_notification(
+                async move |notification: SessionNotification, _cx| {
+                    notifications_for_client.lock().unwrap().push(notification);
+                    Ok(())
+                },
+                agent_client_protocol::on_receive_notification!(),
+            )
+            .connect_with(client_transport, async move |cx| {
+                cx.send_request(
+                    InitializeRequest::new(ProtocolVersion::V1)
+                        .client_capabilities(ClientCapabilities::default())
+                        .client_info(Implementation::new("thinking-screen-client", "0.0.0")),
+                )
+                .block_task()
+                .await?;
+
+                let created = cx
+                    .send_request(NewSessionRequest::new(cwd))
+                    .block_task()
+                    .await?;
+                let prompt_response = cx
+                    .send_request(PromptRequest::new(
+                        created.session_id.clone(),
+                        vec![ContentBlock::from("/review")],
+                    ))
+                    .block_task()
+                    .await?;
+                assert_eq!(prompt_response.stop_reason, StopReason::EndTurn);
+                cx.send_request(CloseSessionRequest::new(created.session_id))
+                    .block_task()
+                    .await?;
+                Ok(())
+            }),
+    )
+    .await
+    .expect("thinking screen should wait for transcript completion")
+    .expect("client connection");
+
+    server_task.abort();
+
+    let updates = notifications
+        .lock()
+        .unwrap()
+        .iter()
+        .map(|notification| format!("{:?}", notification.update))
+        .collect::<Vec<_>>();
+    assert!(
+        updates
+            .iter()
+            .any(|update| update.contains("review complete"))
+    );
+    assert!(
+        !updates
+            .iter()
+            .any(|update| update.contains("Thinking for 2s"))
     );
 }
 

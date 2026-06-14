@@ -17,7 +17,7 @@ use crate::{
     config::commands,
     session::manager::PendingPermission,
     terminal::recognizers::{PermissionDecision, PermissionDialog},
-    transcript::events::{TranscriptEvent, TranscriptEventKind},
+    transcript::events::{TranscriptEvent, TranscriptEventKind, local_command_output},
 };
 
 pub const ALLOW_ONCE_OPTION_ID: &str = "allow_once";
@@ -167,7 +167,14 @@ impl TranscriptUpdateMapper {
                 .collect(),
             TranscriptEventKind::ToolUse => self.tool_use_updates(event),
             TranscriptEventKind::ToolResult => self.tool_result_updates(event),
-            TranscriptEventKind::System | TranscriptEventKind::Diagnostic => Vec::new(),
+            TranscriptEventKind::System => event
+                .text
+                .as_deref()
+                .and_then(local_command_output)
+                .map(agent_message_chunk)
+                .into_iter()
+                .collect(),
+            TranscriptEventKind::Diagnostic => Vec::new(),
         }
     }
 

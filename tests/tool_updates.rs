@@ -194,6 +194,28 @@ fn tool_result_errors_are_failed_and_not_terminal_formatted() {
     assert_content_text(update, "```\ncommand not found\n```");
 }
 
+#[test]
+fn local_command_system_output_is_emitted_as_agent_message() {
+    let line = json!({
+        "type": "system",
+        "subtype": "local_command",
+        "sessionId": "session-a",
+        "content": "<local-command-stderr>Error: No messages to compact</local-command-stderr>"
+    })
+    .to_string();
+    let event = parse_transcript_line(&line).expect("parse").remove(0);
+    let updates = TranscriptUpdateMapper::new(None, false).updates_for_event(&event);
+    assert_eq!(updates.len(), 1);
+    let chunk = match &updates[0] {
+        SessionUpdate::AgentMessageChunk(chunk) => chunk,
+        update => panic!("expected agent message chunk, got {update:?}"),
+    };
+    let ContentBlock::Text(TextContent { text, .. }) = &chunk.content else {
+        panic!("expected text block, got {:?}", chunk.content);
+    };
+    assert_eq!(text, "Error: No messages to compact");
+}
+
 fn assert_content_text(update: &ToolCallUpdate, expected: &str) {
     let content = update
         .fields

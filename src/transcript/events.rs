@@ -65,6 +65,11 @@ impl TranscriptEvent {
     pub fn session_id(&self) -> Option<&str> {
         self.session_id.as_deref()
     }
+
+    pub fn is_local_command_output(&self) -> bool {
+        self.kind == TranscriptEventKind::System
+            && self.text.as_deref().is_some_and(has_local_command_output)
+    }
 }
 
 pub fn parse_transcript_line(line: &str) -> anyhow::Result<Vec<TranscriptEvent>> {
@@ -91,6 +96,9 @@ pub fn parse_transcript_record(value: &Value) -> Vec<TranscriptEvent> {
     let role = string_at(message, &["role"])
         .or_else(|| string_at(value, &["role"]))
         .unwrap_or(record_type.as_str());
+    if role == "user" && value.get("isMeta").and_then(Value::as_bool) == Some(true) {
+        return Vec::new();
+    }
     let model = string_at(message, &["model"]).map(str::to_string);
     let content = message.get("content").or_else(|| value.get("content"));
 
@@ -300,6 +308,7 @@ pub fn strip_local_command_metadata(text: &str) -> String {
         "command-name",
         "command-message",
         "command-args",
+        "local-command-caveat",
         "local-command-stdout",
         "local-command-stderr",
     ] {
@@ -315,6 +324,49 @@ pub fn strip_local_command_metadata(text: &str) -> String {
         }
     }
     stripped.trim().to_string()
+}
+
+pub fn local_command_output(text: &str) -> Option<String> {
+    let output = local_command_segments(text)
+        .into_iter()
+        .filter_map(|segment| {
+            let segment = segment.trim();
+            (!segment.is_empty()).then(|| segment.to_string())
+        })
+        .collect::<Vec<_>>()
+        .join("\n");
+    (!output.is_empty()).then_some(output)
+}
+
+fn has_local_command_output(text: &str) -> bool {
+    !local_command_segments(text).is_empty()
+}
+
+fn local_command_segments(text: &str) -> Vec<&str> {
+    const TAGS: [(&str, &str); 2] = [
+        ("<local-command-stdout>", "</local-command-stdout>"),
+        ("<local-command-stderr>", "</local-command-stderr>"),
+    ];
+
+    let mut segments = Vec::new();
+    let mut rest = text;
+    while let Some((start, start_tag, end_tag)) = TAGS
+        .iter()
+        .filter_map(|(start_tag, end_tag)| {
+            rest.find(start_tag)
+                .map(|start| (start, *start_tag, *end_tag))
+        })
+        .min_by_key(|(start, _, _)| *start)
+    {
+        let body_start = start + start_tag.len();
+        let Some(relative_end) = rest[body_start..].find(end_tag) else {
+            break;
+        };
+        let body_end = body_start + relative_end;
+        segments.push(&rest[body_start..body_end]);
+        rest = &rest[body_end + end_tag.len()..];
+    }
+    segments
 }
 
 fn summarize_text(text: &str) -> RedactionSummary {
