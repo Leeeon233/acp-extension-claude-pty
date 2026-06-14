@@ -2,7 +2,11 @@ use std::{ffi::OsString, io::IsTerminal, io::Read, io::Write, time::Duration};
 
 use clap::Parser;
 
-use crate::{acp::server::AcpServer, doctor, interactive, print_mode};
+use crate::{
+    acp::server::AcpServer,
+    doctor, interactive, print_mode,
+    session::manager::{DEFAULT_STARTUP_PROMPT_TIMEOUT_SECS, DEFAULT_TURN_TIMEOUT_SECS},
+};
 
 #[derive(Debug, Parser)]
 #[command(name = "acp-extension-claude-pty")]
@@ -24,12 +28,22 @@ struct PrintCommand {
     model: Option<String>,
     #[arg(long)]
     permission_mode: Option<String>,
-    #[arg(long, default_value_t = 120)]
+    #[arg(long, default_value_t = DEFAULT_TURN_TIMEOUT_SECS)]
     timeout: u64,
+    #[arg(long, default_value_t = DEFAULT_STARTUP_PROMPT_TIMEOUT_SECS)]
+    startup_timeout: u64,
     #[arg(long, default_value_t = false)]
     attach_on_timeout: bool,
     #[arg(long, default_value_t = false)]
     attach_on_permission: bool,
+}
+
+#[derive(Debug, Parser)]
+#[command(name = "acp")]
+#[command(about = "Run the ACP server over stdio")]
+struct AcpCommand {
+    #[arg(long, default_value_t = DEFAULT_STARTUP_PROMPT_TIMEOUT_SECS)]
+    startup_timeout: u64,
 }
 
 pub async fn run(args: impl IntoIterator<Item = OsString>) -> anyhow::Result<()> {
@@ -48,7 +62,16 @@ pub async fn run(args: impl IntoIterator<Item = OsString>) -> anyhow::Result<()>
             std::process::exit(status);
         }
         None => AcpServer::new().serve_stdio().await.map_err(Into::into),
-        Some("acp") => AcpServer::new().serve_stdio().await.map_err(Into::into),
+        Some("acp") => {
+            let acp_args = std::iter::once(OsString::from("acp"))
+                .chain(args.into_iter().skip(1))
+                .collect::<Vec<_>>();
+            let command = AcpCommand::parse_from(acp_args);
+            AcpServer::with_startup_prompt_timeout(Duration::from_secs(command.startup_timeout))
+                .serve_stdio()
+                .await
+                .map_err(Into::into)
+        }
         Some("interactive") => {
             let forwarded = strip_command_and_separator(args);
             let status = interactive::run(forwarded).await?;
@@ -86,6 +109,7 @@ pub async fn run(args: impl IntoIterator<Item = OsString>) -> anyhow::Result<()>
                 model: command.model,
                 permission_mode: command.permission_mode,
                 timeout: Duration::from_secs(command.timeout),
+                startup_prompt_timeout: Duration::from_secs(command.startup_timeout),
                 attach_on_timeout: command.attach_on_timeout,
                 attach_on_permission: command.attach_on_permission,
             };

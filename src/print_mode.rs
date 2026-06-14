@@ -37,6 +37,7 @@ pub struct PrintRequest {
     pub model: Option<String>,
     pub permission_mode: Option<String>,
     pub timeout: Duration,
+    pub startup_prompt_timeout: Duration,
     pub attach_on_timeout: bool,
     pub attach_on_permission: bool,
 }
@@ -61,6 +62,7 @@ pub async fn run(request: PrintRequest) -> anyhow::Result<()> {
             request.prompt,
             TurnOptions {
                 timeout: request.timeout,
+                startup_prompt_timeout: request.startup_prompt_timeout,
                 model: request.model,
                 permission_mode: request.permission_mode,
                 resume: request.resume,

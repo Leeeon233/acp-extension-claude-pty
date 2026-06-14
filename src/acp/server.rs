@@ -2,6 +2,7 @@ use std::{
     collections::HashMap,
     path::PathBuf,
     sync::{Arc, Mutex},
+    time::Duration,
 };
 
 use acp::schema::{
@@ -36,14 +37,22 @@ pub struct AcpServer {
     client_capabilities: Arc<Mutex<ClientCapabilities>>,
     sessions: Arc<Mutex<HashMap<SessionId, Arc<ManagedSession>>>>,
     manager: SessionManager,
+    startup_prompt_timeout: Duration,
 }
 
 impl AcpServer {
     pub fn new() -> Self {
+        Self::with_startup_prompt_timeout(Duration::from_secs(
+            crate::session::manager::DEFAULT_STARTUP_PROMPT_TIMEOUT_SECS,
+        ))
+    }
+
+    pub fn with_startup_prompt_timeout(startup_prompt_timeout: Duration) -> Self {
         Self {
             client_capabilities: Arc::default(),
             sessions: Arc::default(),
             manager: SessionManager::new(),
+            startup_prompt_timeout,
         }
     }
 
@@ -413,28 +422,25 @@ impl AcpServer {
 
         let permission_cx = cx.clone();
         let permission_session_id = session_id.clone();
+        let mut options = TurnOptions::from_prompt_request(&request);
+        options.startup_prompt_timeout = self.startup_prompt_timeout;
         let turn = session
-            .prompt_with_permission_handler(
-                prompt,
-                TurnOptions::from_prompt_request(&request),
-                move |permission| {
-                    let permission_cx = permission_cx.clone();
-                    let permission_session_id = permission_session_id.clone();
-                    async move {
-                        let response = permission_cx
-                            .send_request(updates::permission_request(
-                                permission_session_id,
-                                &permission,
-                            ))
-                            .block_task()
-                            .await
-                            .map_err(|err| anyhow::anyhow!("permission request failed: {err}"))?;
-                        updates::permission_decision(&response.outcome).ok_or_else(|| {
-                            anyhow::anyhow!("client returned unknown permission option")
-                        })
-                    }
-                },
-            )
+            .prompt_with_permission_handler(prompt, options, move |permission| {
+                let permission_cx = permission_cx.clone();
+                let permission_session_id = permission_session_id.clone();
+                async move {
+                    let response = permission_cx
+                        .send_request(updates::permission_request(
+                            permission_session_id,
+                            &permission,
+                        ))
+                        .block_task()
+                        .await
+                        .map_err(|err| anyhow::anyhow!("permission request failed: {err}"))?;
+                    updates::permission_decision(&response.outcome)
+                        .ok_or_else(|| anyhow::anyhow!("client returned unknown permission option"))
+                }
+            })
             .await
             .map_err(internal_error)?;
 

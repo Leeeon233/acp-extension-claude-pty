@@ -25,6 +25,8 @@ use crate::{
 };
 
 const CLAUDE_ASSISTANT_LINE_MARKER: char = '⏺';
+pub const DEFAULT_TURN_TIMEOUT_SECS: u64 = 120;
+pub const DEFAULT_STARTUP_PROMPT_TIMEOUT_SECS: u64 = 120;
 
 #[derive(Clone)]
 pub struct SessionManager {
@@ -87,6 +89,7 @@ impl Default for SessionManager {
 #[derive(Debug, Clone)]
 pub struct TurnOptions {
     pub timeout: Duration,
+    pub startup_prompt_timeout: Duration,
     pub model: Option<String>,
     pub permission_mode: Option<String>,
     pub resume: Option<String>,
@@ -99,7 +102,8 @@ pub struct TurnOptions {
 impl TurnOptions {
     pub fn from_prompt_request(_request: &PromptRequest) -> Self {
         Self {
-            timeout: Duration::from_secs(120),
+            timeout: Duration::from_secs(DEFAULT_TURN_TIMEOUT_SECS),
+            startup_prompt_timeout: Duration::from_secs(DEFAULT_STARTUP_PROMPT_TIMEOUT_SECS),
             model: None,
             permission_mode: None,
             resume: None,
@@ -245,7 +249,7 @@ impl ManagedSession {
         let mut tailer =
             TranscriptTailer::from_locator_at_end(self.session_id.0.to_string(), &locator)?;
         if !options.initial_prompt_argument || reused_pty {
-            wait_for_idle_prompt(&mut pty, options.timeout)?;
+            wait_for_idle_prompt(&mut pty, options.startup_prompt_timeout)?;
             pty.submit_prompt(&prompt)?;
         }
 
@@ -507,8 +511,7 @@ fn permission_fingerprint(dialog: &PermissionDialog) -> String {
 }
 
 fn wait_for_idle_prompt(pty: &mut ClaudePtySession, timeout: Duration) -> anyhow::Result<()> {
-    let startup_timeout = timeout.min(Duration::from_secs(20));
-    let deadline = std::time::Instant::now() + startup_timeout;
+    let deadline = std::time::Instant::now() + timeout;
     let mut confirmed_workspace_trust = false;
     loop {
         let screen_status = pty

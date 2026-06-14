@@ -63,6 +63,62 @@ done
 }
 
 #[test]
+fn print_help_documents_startup_timeout_default() {
+    Command::cargo_bin("acp-extension-claude-pty")
+        .expect("binary")
+        .args(["print", "--help"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("--startup-timeout"))
+        .stdout(predicate::str::contains("[default: 120]"));
+}
+
+#[test]
+fn acp_help_documents_startup_timeout_default() {
+    Command::cargo_bin("acp-extension-claude-pty")
+        .expect("binary")
+        .args(["acp", "--help"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("--startup-timeout"))
+        .stdout(predicate::str::contains("[default: 120]"));
+}
+
+#[test]
+#[cfg(unix)]
+fn print_startup_timeout_is_configurable() {
+    let temp = tempfile::tempdir().expect("tempdir");
+    let fake = temp.path().join("claude-fake");
+    write_executable(
+        &fake,
+        r#"#!/bin/sh
+sleep 2
+printf 'Claude ready\r\n> '
+"#,
+    );
+
+    Command::cargo_bin("acp-extension-claude-pty")
+        .expect("binary")
+        .env("CLAUDE_CODE_CLI", &fake)
+        .env("HOME", temp.path())
+        .args([
+            "print",
+            "--session-id",
+            "66666666-6666-4666-8666-666666666666",
+            "--timeout",
+            "5",
+            "--startup-timeout",
+            "1",
+            "hello",
+        ])
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains(
+            "timed out waiting for Claude interactive prompt",
+        ));
+}
+
+#[test]
 #[cfg(unix)]
 fn print_json_includes_session_id_and_model() {
     let temp = tempfile::tempdir().expect("tempdir");

@@ -63,6 +63,14 @@ acp-extension-claude-pty print "summarize this repo"
 echo "write release notes" | acp-extension-claude-pty print --output-format json
 ```
 
+Use `--startup-timeout <seconds>` when Claude Code needs longer to paint the
+interactive prompt before input can be submitted. The default is 120 seconds:
+
+```sh
+acp-extension-claude-pty acp --startup-timeout 180
+acp-extension-claude-pty print --startup-timeout 180 "summarize this repo"
+```
+
 Doctor and drift checks:
 
 ```sh
