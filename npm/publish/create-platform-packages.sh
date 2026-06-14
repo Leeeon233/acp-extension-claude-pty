@@ -42,7 +42,7 @@ for platform in "${platforms[@]}"; do
   fi
 
   # Find and extract the archive
-  archive_path=$(find "$ARTIFACTS_DIR" -name "*-${target}.${archive_ext}" | head -n 1)
+  archive_path=$(find "$ARTIFACTS_DIR" -type f -name "*-${target}.${archive_ext}" | head -n 1)
 
   if [[ -z "$archive_path" ]]; then
     echo "⚠️  Warning: No archive found for target $target"

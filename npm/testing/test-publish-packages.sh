@@ -43,9 +43,13 @@ for target_spec in "${targets[@]}"; do
   chmod +x "$target_dir/acp-extension-claude-pty${ext}"
 
   if [[ "$target" == *"windows"* ]]; then
-    (cd "$target_dir" && zip -q "$artifacts_dir/${archive_name}.zip" "acp-extension-claude-pty${ext}")
+    artifact_dir="$artifacts_dir/${archive_name}.zip"
+    mkdir -p "$artifact_dir"
+    (cd "$target_dir" && zip -q "$artifact_dir/${archive_name}.zip" "acp-extension-claude-pty${ext}")
   else
-    tar czf "$artifacts_dir/${archive_name}.tar.gz" -C "$target_dir" "acp-extension-claude-pty${ext}"
+    artifact_dir="$artifacts_dir/${archive_name}.tar.gz"
+    mkdir -p "$artifact_dir"
+    tar czf "$artifact_dir/${archive_name}.tar.gz" -C "$target_dir" "acp-extension-claude-pty${ext}"
   fi
 done
 
