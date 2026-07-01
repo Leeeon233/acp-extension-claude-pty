@@ -97,13 +97,6 @@ npm install -g acp-extension-claude-pty
 \`\`\`
 EOF
 
-  # Update bin field for Windows to include .exe extension
-  if [[ "$os" == "win32" ]]; then
-    # Use sed to update the bin path in package.json
-    sed -i.bak 's|"bin/acp-extension-claude-pty"|"bin/acp-extension-claude-pty.exe"|' "${pkg_dir}/package.json"
-    rm "${pkg_dir}/package.json.bak"
-  fi
-
   echo "   ✓ Created package: ${pkg_name}"
 done
 

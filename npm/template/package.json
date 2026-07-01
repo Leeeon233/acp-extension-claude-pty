@@ -9,9 +9,6 @@
     "type": "git",
     "url": "git+https://github.com/Leeeon233/acp-extension-claude-pty.git"
   },
-  "bin": {
-    "acp-extension-claude-pty": "bin/acp-extension-claude-pty"
-  },
   "engines": {
     "node": ">=18.0.0"
   },

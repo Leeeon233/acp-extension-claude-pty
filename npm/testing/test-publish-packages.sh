@@ -70,10 +70,40 @@ for package_name in "${expected_packages[@]}"; do
   test -f "$package_dir/README.md"
   test -f "$package_dir/LICENSE"
   test -f "$package_dir/NOTICE.md"
-  node -e "JSON.parse(require('fs').readFileSync(process.argv[1], 'utf8'))" "$package_dir/package.json"
+  node - <<'NODE' "$package_dir/package.json"
+const fs = require("fs");
+const pkg = JSON.parse(fs.readFileSync(process.argv[2], "utf8"));
+if (pkg.bin) {
+  throw new Error(`${pkg.name} must not declare a bin; it conflicts with the base wrapper bin`);
+}
+NODE
   npm pack --dry-run --json "$package_dir" >/dev/null
 done
 
 npm pack --dry-run --json ./npm >/dev/null
+
+base_dir="$tmp_dir/base-package"
+install_dir="$tmp_dir/install-check"
+cp -R npm "$base_dir"
+
+node - <<'NODE' "$base_dir/package.json" "$packages_dir"
+const fs = require("fs");
+const path = require("path");
+const packageJsonPath = process.argv[2];
+const packagesDir = process.argv[3];
+const pkg = JSON.parse(fs.readFileSync(packageJsonPath, "utf8"));
+for (const packageName of Object.keys(pkg.optionalDependencies)) {
+  pkg.optionalDependencies[packageName] = `file:${path.join(packagesDir, packageName)}`;
+}
+fs.writeFileSync(packageJsonPath, `${JSON.stringify(pkg, null, 2)}\n`);
+NODE
+
+mkdir -p "$install_dir"
+(
+  cd "$install_dir"
+  npm init -y >/dev/null
+  npm install --silent "$base_dir"
+  test -x node_modules/.bin/acp-extension-claude-pty
+)
 
 echo "Publish package dry-run checks passed."
