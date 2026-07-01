@@ -1,117 +1,72 @@
 #!/usr/bin/env node
 
 /**
- * Test the platform detection logic from the wrapper script
+ * Test the wrapper script platform selection and fallback npm exec command.
  */
 
-function getPlatformPackage() {
-  const platform = process.platform;
-  const arch = process.arch;
+import assert from "node:assert/strict";
 
-  const platformMap = {
-    darwin: {
-      arm64: "acp-extension-claude-pty-darwin-arm64",
-      x64: "acp-extension-claude-pty-darwin-x64",
-    },
-    linux: {
-      arm64: "acp-extension-claude-pty-linux-arm64",
-      x64: "acp-extension-claude-pty-linux-x64",
-    },
-    win32: {
-      arm64: "acp-extension-claude-pty-win32-arm64",
-      x64: "acp-extension-claude-pty-win32-x64",
-    },
-  };
+process.env.ACP_CLAUDE_PTY_SKIP_RUN = "1";
 
-  const packages = platformMap[platform];
-  if (!packages) {
-    console.error(`Unsupported platform: ${platform}`);
-    process.exit(1);
-  }
+const {
+  buildNpmExecArgs,
+  getPlatformPackage,
+  getPlatformPackageSpec,
+} = await import("../bin/acp-extension-claude-pty.js");
 
-  const packageName = packages[arch];
-  if (!packageName) {
-    console.error(`Unsupported architecture: ${arch} on ${platform}`);
-    process.exit(1);
-  }
+const testCases = [
+  { platform: "darwin", arch: "arm64", expected: "acp-extension-claude-pty-darwin-arm64" },
+  { platform: "darwin", arch: "x64", expected: "acp-extension-claude-pty-darwin-x64" },
+  { platform: "linux", arch: "arm64", expected: "acp-extension-claude-pty-linux-arm64" },
+  { platform: "linux", arch: "x64", expected: "acp-extension-claude-pty-linux-x64" },
+  { platform: "win32", arch: "arm64", expected: "acp-extension-claude-pty-win32-arm64" },
+  { platform: "win32", arch: "x64", expected: "acp-extension-claude-pty-win32-x64" },
+];
 
-  return packageName;
+console.log("Testing platform detection logic...\n");
+
+for (const testCase of testCases) {
+  const result = getPlatformPackage(testCase.platform, testCase.arch);
+  assert.equal(result, testCase.expected);
+  console.log(`✓ ${testCase.platform}-${testCase.arch} -> ${result}`);
 }
 
-// Test all known platform/arch combinations
-function testAllPlatforms() {
-  const testCases = [
-    { platform: "darwin", arch: "arm64", expected: "acp-extension-claude-pty-darwin-arm64" },
-    { platform: "darwin", arch: "x64", expected: "acp-extension-claude-pty-darwin-x64" },
-    { platform: "linux", arch: "arm64", expected: "acp-extension-claude-pty-linux-arm64" },
-    { platform: "linux", arch: "x64", expected: "acp-extension-claude-pty-linux-x64" },
-    { platform: "win32", arch: "arm64", expected: "acp-extension-claude-pty-win32-arm64" },
-    { platform: "win32", arch: "x64", expected: "acp-extension-claude-pty-win32-x64" },
-  ];
+assert.throws(
+  () => getPlatformPackage("freebsd", "x64"),
+  /Unsupported platform: freebsd/,
+);
+assert.throws(
+  () => getPlatformPackage("darwin", "riscv64"),
+  /Unsupported architecture: riscv64 on darwin/,
+);
 
-  console.log("Testing platform detection logic...\n");
+console.log("\nTesting fallback npm exec command...\n");
 
-  let allPassed = true;
+const packageName = "acp-extension-claude-pty-darwin-arm64";
+const packageSpec = getPlatformPackageSpec(packageName, {
+  version: "1.2.3",
+  optionalDependencies: {
+    [packageName]: "4.5.6",
+  },
+});
+assert.equal(packageSpec, `${packageName}@4.5.6`);
 
-  for (const testCase of testCases) {
-    // Mock the platform and arch
-    const originalPlatform = process.platform;
-    const originalArch = process.arch;
+const args = buildNpmExecArgs(packageSpec, ["acp", "--debug"]);
+assert.deepEqual(args, [
+  "exec",
+  "--yes",
+  "--package",
+  `${packageName}@4.5.6`,
+  "--",
+  "acp-extension-claude-pty",
+  "acp",
+  "--debug",
+]);
 
-    Object.defineProperty(process, "platform", {
-      value: testCase.platform,
-      configurable: true,
-    });
-    Object.defineProperty(process, "arch", {
-      value: testCase.arch,
-      configurable: true,
-    });
+console.log(`✓ npm ${args.join(" ")}`);
 
-    try {
-      const result = getPlatformPackage();
-      if (result === testCase.expected) {
-        console.log(`✓ ${testCase.platform}-${testCase.arch} -> ${result}`);
-      } else {
-        console.error(
-          `✗ ${testCase.platform}-${testCase.arch} -> Expected: ${testCase.expected}, Got: ${result}`,
-        );
-        allPassed = false;
-      }
-    } catch (e) {
-      console.error(
-        `✗ ${testCase.platform}-${testCase.arch} -> Error: ${e.message}`,
-      );
-      allPassed = false;
-    } finally {
-      // Restore original values
-      Object.defineProperty(process, "platform", {
-        value: originalPlatform,
-        configurable: true,
-      });
-      Object.defineProperty(process, "arch", {
-        value: originalArch,
-        configurable: true,
-      });
-    }
-  }
-
-  console.log();
-  if (allPassed) {
-    console.log("✓ All platform detection tests passed!");
-    return 0;
-  } else {
-    console.error("✗ Some platform detection tests failed");
-    return 1;
-  }
-}
-
-// Run tests
-const exitCode = testAllPlatforms();
-
-// Show current platform info
+console.log("\n✓ All wrapper tests passed!");
 console.log("\nCurrent platform:");
 console.log(`  Platform: ${process.platform}`);
 console.log(`  Arch: ${process.arch}`);
 console.log(`  Package: ${getPlatformPackage()}`);
-
-process.exit(exitCode);
